@@ -546,7 +546,7 @@ function AppContent() {
 
     try {
       await setDoc(doc(db, 'reviews', String(rId)), reviewObj);
-      handleAnnounce(`새로운 배리어프리 품질 탐방 리뷰 [${newReview.show}]가 기여 DB에 완벽 보존되었습니다.`);
+      handleAnnounce(`새로운 배리어프리 품질 탐방 후기 [${newReview.show}]가 기여 DB에 완벽 보존되었습니다.`);
     } catch (err) {
       console.error("후기 저장 오류:", err);
       handleFirestoreError(err, OperationType.WRITE, `reviews/${rId}`);

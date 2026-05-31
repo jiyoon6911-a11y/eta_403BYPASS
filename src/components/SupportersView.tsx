@@ -139,7 +139,7 @@ export default function SupportersView({ onBack, onAnnounce, highContrast }: Sup
                   <div className="space-y-1">
                     <h4 className="text-xs font-black text-white">{t("장벽 없는 인프라 체감")}</h4>
                     <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                      {t("휠체어 접근성, 스마트 자막, 음성 해설 등 공연장에 마련된 다양한 배리어 프리 시설을 먼저 경험하고 리뷰합니다.")}
+                      {t("휠체어 접근성, 스마트 자막, 음성 해설 등 공연장에 마련된 다양한 배리어 프리 시설을 먼저 경험하고 생생한 후기를 작성합니다.")}
                     </p>
                   </div>
                 </div>

@@ -93,7 +93,7 @@ export const TRANSLATIONS: Record<string, Record<Exclude<Language, 'ko'>, string
 
   // Profile Tab
   "배리어프리 한줄평 및 이용자 교류 게시판": { en: "Feedback & Community", ja: "アクセシビリティ掲示板", zh: "无障碍反馈与社区交流" },
-  "리뷰 쓰기": { en: "Write Review", ja: "レビューを書く", zh: "写评价" },
+  "후기 쓰기": { en: "Write Review", ja: "レビューを書く", zh: "写评价" },
   "팔로잉": { en: "Following", ja: "フォロー中", zh: "已关注" },
   "로그아웃 및 서비스 종료": { en: "Log out and exit service", ja: "ログアウトしてサービスを終了", zh: "退出登录并关闭服务" },
   "ID를 터치하면 상대방을 팔로우하여 안전 등급을 구독합니다.": {
@@ -290,7 +290,7 @@ export const HOMETAB_TRANSLATIONS: Record<string, Record<Exclude<Language, 'ko'>
   "공식 홍보대사": { en: "Official Supporter", ja: "公式アンバサダー", zh: "官方宣传大使" },
   "403 서포터즈": { en: "403 Supporter", ja: "403サポーターズ", zh: "403 志愿者" },
   "1기 대모집!": { en: "1st Term Recruiting!", ja: "1期生 大募集！", zh: "首期火热招募！" },
-  "접근성 리뷰하고 리워드 받자": { en: "Review Accessibility & Earn Perks", ja: "アクセシビリティを評価して特典をゲット", zh: "撰写无障碍测评 赢取多重好礼" },
+  "접근성 후기 작성하고 리워드 받자": { en: "Review Accessibility & Earn Perks", ja: "アクセシビリティを評価して特典をゲット", zh: "撰写无障碍测评 赢取多重好礼" },
   "지원완료 ♿": { en: "Applied ♿", ja: "応募完了 ♿", zh: "已申请 ♿" },
   "지원하기": { en: "Apply Now", ja: "応募する", zh: "立即参与" },
 

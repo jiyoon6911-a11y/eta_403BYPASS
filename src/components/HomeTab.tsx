@@ -38,9 +38,16 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
     }
 
     try {
+      if (voiceRecognitionRef) {
+        try {
+          voiceRecognitionRef.stop();
+        } catch (e) {}
+      }
+
       const recognition = new SpeechRecognition();
       recognition.lang = "ko-KR";
       recognition.interimResults = true;
+      recognition.continuous = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
@@ -50,8 +57,20 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
       };
 
       recognition.onresult = (event: any) => {
-        const text = event.results[event.results.length - 1][0].transcript;
-        setVoiceTranscript(text);
+        let finalConcat = '';
+        let interimConcat = '';
+        for (let i = 0; i < event.results.length; i++) {
+          const resultText = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalConcat += resultText;
+          } else {
+            interimConcat += resultText;
+          }
+        }
+        const combined = finalConcat + interimConcat;
+        if (combined.trim()) {
+          setVoiceTranscript(combined);
+        }
       };
 
       recognition.onerror = (err: any) => {
@@ -59,9 +78,13 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
         if (err.error === 'not-allowed') {
           onAnnounce(t("마이크 접근 권한이 필요합니다."));
           setVoiceTranscript(t("마이크 비인가 또는 권한 거부 상태입니다. 직접 터치 키워드를 사용해 보세요."));
+        } else if (err.error === 'no-speech') {
+          onAnnounce(t("말소리가 들리지 않습니다."));
+          setVoiceTranscript(t("말소리가 들리지 않습니다. 마이크 아이콘을 눌러 다시 말씀해 주세요."));
         } else {
           onAnnounce(t("음성 인식 알림:") + " " + err.error);
         }
+        setIsListening(false);
       };
 
       recognition.onend = () => {
@@ -77,7 +100,12 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
   };
 
   const handleApplyVoiceQuery = (queryText: string) => {
-    setSearchQuery(queryText);
+    // Clean up instructions or initial helper texts if any before setting
+    let processedText = queryText || "";
+    if (processedText.includes("듣고 있습니다") || processedText.includes("라이브러리가 비연동")) {
+      processedText = "";
+    }
+    setSearchQuery(processedText);
     setShowVoiceModal(false);
     setIsListening(false);
     if (voiceRecognitionRef) {
@@ -85,7 +113,7 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
         voiceRecognitionRef.stop();
       } catch (e) {}
     }
-    onAnnounce(`"${queryText}" ` + t("공연을 음성으로 검색합니다."));
+    onAnnounce(`"${processedText}" ` + t("공연을 음성으로 검색합니다."));
   };
 
   const stopVoiceSearch = () => {
@@ -95,6 +123,20 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
       try {
         voiceRecognitionRef.stop();
       } catch (e) {}
+    }
+  };
+
+  const toggleMicInModal = () => {
+    if (isListening) {
+      if (voiceRecognitionRef) {
+        try {
+          voiceRecognitionRef.stop();
+        } catch (e) {}
+      }
+      setIsListening(false);
+      onAnnounce(t("음성 인식을 일시 정지했습니다."));
+    } else {
+      startVoiceSearch();
     }
   };
 
@@ -510,23 +552,48 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
               </button>
             </div>
 
-            {/* Listening Graphic (Bouncing bars & Glowing wave animation) */}
-            <div className="flex flex-col items-center justify-center py-6 space-y-4">
-              <div className="relative flex items-center justify-center w-20 h-20">
-                <div className="absolute inset-0 bg-rose-500/10 rounded-full animate-ping pointer-events-none" />
-                <div className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-rose-600 to-rose-400 flex items-center justify-center shadow-[0_0_25px_rgba(244,63,94,0.4)]">
-                  <Mic className="w-7 h-7 text-white animate-pulse" />
-                </div>
-              </div>
+            {/* Listening Graphic (Bouncing bars & Glowing wave animation) - Clickable to toggle microphone */}
+            <div className="flex flex-col items-center justify-center py-5 space-y-4">
+              <button
+                type="button"
+                onClick={toggleMicInModal}
+                className="relative flex items-center justify-center w-24 h-24 focus:outline-none cursor-pointer group"
+                title={isListening ? "음성 인식 일시 정지" : "음성 인식 시작"}
+              >
+                {isListening ? (
+                  <>
+                    <div className="absolute inset-0 bg-rose-500/20 rounded-full animate-ping pointer-events-none" />
+                    <div className="absolute -inset-2 bg-rose-500/10 rounded-full animate-pulse pointer-events-none" />
+                    <div className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-rose-600 to-rose-400 flex items-center justify-center shadow-[0_0_25px_rgba(244,63,94,0.6)] group-hover:scale-105 active:scale-95 transition-all">
+                      <Mic className="w-8 h-8 text-white animate-pulse" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="relative w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 shadow-md group-hover:scale-105 active:scale-95 transition-all">
+                      <Mic className="w-8 h-8 text-slate-500" />
+                    </div>
+                  </>
+                )}
+              </button>
+
+              {/* Status Message below button */}
+              <button
+                type="button"
+                onClick={toggleMicInModal}
+                className="text-[10px] font-black tracking-wider text-slate-400 hover:text-[#00E5FF] transition-colors cursor-pointer bg-slate-800/40 px-3 py-1 rounded-full border border-slate-800"
+              >
+                {isListening ? "🟢 듣는 중... (터치 시 일시정지)" : "🔴 꺼짐... (터치하여 다시 켜기)"}
+              </button>
 
               {/* Bouncing Bars visualization */}
               <div className="flex items-end justify-center gap-1 h-8 px-4">
-                <div className="w-1 bg-[#00E5FF] rounded-full animate-[bounce_0.8s_infinite_100ms] h-4" />
-                <div className="w-1 bg-[#00E5FF] rounded-full animate-[bounce_0.8s_infinite_300ms] h-7" />
-                <div className="w-1 bg-cyan-400 rounded-full animate-[bounce_0.8s_infinite_0s] h-5" />
-                <div className="w-1 bg-emerald-400 rounded-full animate-[bounce_0.8s_infinite_150ms] h-8" />
-                <div className="w-1 bg-rose-500 rounded-full animate-[bounce_0.8s_infinite_200ms] h-6" />
-                <div className="w-1 bg-purple-500 rounded-full animate-[bounce_0.8s_infinite_400ms] h-4" />
+                <div className={`w-1 bg-[#00E5FF] rounded-full transition-all duration-300 ${isListening ? 'animate-[bounce_0.8s_infinite_100ms] h-4' : 'h-1.5'}`} />
+                <div className={`w-1 bg-[#00E5FF] rounded-full transition-all duration-300 ${isListening ? 'animate-[bounce_0.8s_infinite_300ms] h-7' : 'h-1.5'}`} />
+                <div className={`w-1 bg-cyan-400 rounded-full transition-all duration-300 ${isListening ? 'animate-[bounce_0.8s_infinite_0s] h-5' : 'h-1.5'}`} />
+                <div className={`w-1 bg-emerald-400 rounded-full transition-all duration-300 ${isListening ? 'animate-[bounce_0.8s_infinite_150ms] h-8' : 'h-1.5'}`} />
+                <div className={`w-1 bg-rose-500 rounded-full transition-all duration-200 ${isListening ? 'animate-[bounce_0.8s_infinite_200ms] h-6' : 'h-1.5'}`} />
+                <div className={`w-1 bg-purple-500 rounded-full transition-all duration-300 ${isListening ? 'animate-[bounce_0.8s_infinite_400ms] h-4' : 'h-1.5'}`} />
               </div>
             </div>
 
@@ -538,7 +605,7 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
                 </p>
               </div>
               <p className="text-[10px] text-slate-500 font-bold">
-                {isListening ? "실시간 목소리를 텍스트로 보정 중입니다." : "음성 인식이 대기 상태입니다."}
+                {isListening ? "실시간 목소리를 연속 텍스트로 결합 정밀 보정 중입니다." : "음성이 종료되었습니다. 다시 말하려면 위 아이콘을 터치하세요."}
               </p>
             </div>
 

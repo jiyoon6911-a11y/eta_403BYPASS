@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, Tag, Search, Users, MessageSquare, Star } from 'lucide-react';
+import { LogOut, Tag, Search, Users, MessageSquare, Star, ArrowLeft, Calendar, Info } from 'lucide-react';
 import { ReviewLog, Comment, UserProfile } from '../types';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -37,6 +37,8 @@ export default function ProfileTab({
 }: ProfileTabProps) {
   const [subview, setSubview] = useState<'personal' | 'social'>('personal');
   const [socialTab, setSocialTab] = useState<'following' | 'followers'>('following');
+  const [selectedProfileDetail, setSelectedProfileDetail] = useState<any | null>(null);
+  const [selectedDetailTab, setSelectedDetailTab] = useState<'history' | 'reviews'>('history');
 
   // Review Form state
   const [showInput, setShowInput] = useState('새로운 연극적 기쁨');
@@ -120,20 +122,38 @@ export default function ProfileTab({
           avatarUrl: docData.avatarUrl
         });
       } else {
-        // Fallback search to find static ones if any
-        let found: any = null;
-        if (qStr === 'art_pioneer' || qStr === '백예람') {
-          found = { userId: 'art_pioneer', name: '백예람', role: '동행 필요 관객', type: '♿ 동행 희망' };
-        } else if (qStr === 'culture_helper' || qStr === '김지민') {
-          found = { userId: 'culture_helper', name: '김지민', role: '서포터즈', type: '🤝 보조 헬퍼' };
-        } else if (qStr === 'wheel_champion' || qStr === '박정우') {
-          found = { userId: 'wheel_champion', name: '박정우', role: '동행 필요 관객', type: '♿ 동행 희망' };
-        }
+        // Fallback to match from globalReviews
+        const matchedReview = globalReviews.find(
+          r => r.userId.toLowerCase() === qStr || 
+               r.userName.toLowerCase() === qStr || 
+               r.userId.toLowerCase().includes(qStr) || 
+               r.userName.toLowerCase().includes(qStr)
+        );
 
-        if (found) {
-          setSearchResult(found);
+        if (matchedReview) {
+          setSearchResult({
+            userId: matchedReview.userId,
+            name: matchedReview.userName,
+            role: matchedReview.userRole,
+            type: matchedReview.userRole === '동행 필요 관객' ? '♿ 동행 희망' : matchedReview.userRole === '서포터즈' ? '🤝 보조 헬퍼' : '🎭 일반 관람',
+            avatarUrl: ''
+          });
         } else {
-          setSearchResult({ notFound: true, query: searchQuery });
+          // Fallback search to find static ones if any
+          let found: any = null;
+          if (qStr === 'art_pioneer' || qStr === '백예람') {
+            found = { userId: 'art_pioneer', name: '백예람', role: '동행 필요 관객', type: '♿ 동행 희망' };
+          } else if (qStr === 'culture_helper' || qStr === '김지민') {
+            found = { userId: 'culture_helper', name: '김지민', role: '서포터즈', type: '🤝 보조 헬퍼' };
+          } else if (qStr === 'wheel_champion' || qStr === '박정우') {
+            found = { userId: 'wheel_champion', name: '박정우', role: '동행 필요 관객', type: '♿ 동행 희망' };
+          }
+
+          if (found) {
+            setSearchResult(found);
+          } else {
+            setSearchResult({ notFound: true, query: searchQuery });
+          }
         }
       }
     } catch (err) {
@@ -234,12 +254,196 @@ export default function ProfileTab({
         </button>
       </div>
 
-      {subview === 'personal' ? (
+      {selectedProfileDetail ? (
+        <div className="space-y-4 text-left">
+          {/* Detailed User Card with back action */}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <button
+              onClick={() => {
+                setSelectedProfileDetail(null);
+                onAnnounce("이전 마이페이지 피드로 복귀하였습니다.");
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-[#00E5FF]" />
+              <span>돌아가기</span>
+            </button>
+            <span className="text-[10px] uppercase font-mono font-black tracking-wider text-[#00E5FF]">
+              User Profile (커넥트 상세)
+            </span>
+          </div>
+
+          <div className="hc-card rounded-3xl p-5 bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 space-y-4 shadow-xl">
+            <div className="flex items-center gap-4">
+              {selectedProfileDetail.avatarUrl ? (
+                selectedProfileDetail.avatarUrl.startsWith('http') ? (
+                  <img
+                    src={selectedProfileDetail.avatarUrl}
+                    referrerPolicy="no-referrer"
+                    className="w-14 h-14 rounded-full object-cover border-2 border-cyan-500/40 shadow-lg"
+                    alt="Profile"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xl font-extrabold text-[#00E5FF] shadow-lg">
+                    {selectedProfileDetail.avatarUrl}
+                  </div>
+                )
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-lg select-none shadow-lg">
+                  {selectedProfileDetail.name?.substring(0, 2) || "관객"}
+                </div>
+              )}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-black text-white">{selectedProfileDetail.name} 님</h3>
+                  <span className="px-1.5 py-0.5 rounded text-[8px] bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/20 uppercase font-sans">
+                    {selectedProfileDetail.type || selectedProfileDetail.role || '보안 관람객'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 font-extrabold font-mono">@{selectedProfileDetail.userId}</p>
+              </div>
+            </div>
+
+            {/* Follow Toggle and Metadata stats */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-800/80">
+              <div className="flex gap-4">
+                <div className="text-left">
+                  <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black block leading-none">작성한 후기</span>
+                  <span className="text-sm font-sans font-black text-[#00E5FF]">
+                    {globalReviews.filter(r => r.userId === selectedProfileDetail.userId).length}개
+                  </span>
+                </div>
+                <div className="text-left">
+                  <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black block leading-none">안심 장애 유형</span>
+                  <span className="text-[11px] font-extrabold text-white">
+                    {selectedProfileDetail.role || '일반 관람객'}
+                  </span>
+                </div>
+              </div>
+
+              {selectedProfileDetail.userId !== currentUser.userId && (
+                <button
+                  onClick={() => onToggleFollow(selectedProfileDetail.userId, selectedProfileDetail.name)}
+                  className={`text-[10px] font-black px-4 py-1.5 rounded-xl transition-all cursor-pointer ${
+                    followingIds.includes(selectedProfileDetail.userId)
+                      ? 'bg-slate-800 text-slate-405 border border-slate-700 hover:bg-slate-750'
+                      : 'bg-[#00E5FF] hover:bg-cyan-400 text-slate-950 font-black shadow-lg shadow-cyan-500/10'
+                  }`}
+                >
+                  {followingIds.includes(selectedProfileDetail.userId) ? '팔로잉 취소' : '팔로우'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Profile Detail Tabs: Performance History & Recent Reviews */}
+          <div className="space-y-3">
+            <div className="flex bg-slate-950 border border-slate-805 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setSelectedDetailTab('history')}
+                className={`flex-1 py-1.5 text-center text-xs font-black rounded-lg transition-all cursor-pointer ${
+                  selectedDetailTab === 'history'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                📅 공연 관람 히스토리
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDetailTab('reviews')}
+                className={`flex-1 py-1.5 text-center text-xs font-black rounded-lg transition-all cursor-pointer ${
+                  selectedDetailTab === 'reviews'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                📝 작성한 생생 후기
+              </button>
+            </div>
+
+            {selectedDetailTab === 'history' ? (
+              <div className="space-y-2.5">
+                {(() => {
+                  // Get reviewed shows as confirmed watched history
+                  const reviewedShowsSet = new Set(
+                    globalReviews.filter(r => r.userId === selectedProfileDetail.userId).map(r => r.show)
+                  );
+                  
+                  // Generate realistic simulated history
+                  const presetHistory = [
+                    { title: "연극 '새로운 연극적 기쁨' 403호 시나리오", date: "2026. 05. 20", label: "장벽완화 D2석" },
+                    { title: "뮤지컬 '한여름밤의 꿈 배리어프리'", date: "2026. 03. 15", label: "자막안경 연계" },
+                    { title: "클래식 '음악 앙상블 배리어프리'", date: "2026. 01. 08", label: "리프트 탑승 지원" }
+                  ];
+
+                  // Add also reviewed shows if not in preset
+                  reviewedShowsSet.forEach(show => {
+                    const matchedPreset = presetHistory.find(ph => ph.title.includes(show) || show.includes(ph.title));
+                    if (!matchedPreset) {
+                      presetHistory.unshift({
+                        title: show.startsWith("연극") || show.startsWith("뮤지컬") || show.startsWith("클래식") ? show : `공연 '${show}'`,
+                        date: "2026. 05. 29",
+                        label: "작성 보증 완료"
+                      });
+                    }
+                  });
+
+                  return (
+                    <div className="space-y-2.5">
+                      {presetHistory.map((item, idx) => (
+                        <div key={idx} className="p-3.5 bg-slate-900 border border-slate-850 rounded-2xl flex justify-between items-center gap-4 hc-card">
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-black text-white">{item.title}</h4>
+                            <p className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
+                              <span>관람일자:</span>
+                              <span className="text-slate-350">{item.date}</span>
+                            </p>
+                          </div>
+                          <span className="text-[9px] font-black tracking-tight text-cyan-400 border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 rounded-lg shrink-0">
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {(() => {
+                  const userReviews = globalReviews.filter(r => r.userId === selectedProfileDetail.userId);
+                  if (userReviews.length === 0) {
+                    return (
+                      <div className="py-8 flex flex-col items-center justify-center text-slate-500 text-center border border-dashed border-slate-800 rounded-2xl w-full">
+                        <p className="text-[11px] font-bold">아직 업로드한 관람 후기가 없습니다.</p>
+                      </div>
+                    );
+                  }
+                  return userReviews.map((ur) => {
+                    const stars = '★'.repeat(ur.rating) + '☆'.repeat(5 - ur.rating);
+                    return (
+                      <div key={ur.id} className="bg-slate-900 p-3.5 rounded-2xl border border-slate-850 space-y-2 text-left">
+                        <div className="flex items-center justify-between border-b border-slate-800/40 pb-1.5">
+                          <span className="text-xs font-black text-[#00E5FF]">{ur.show}</span>
+                          <span className="text-[10px] font-mono text-yellow-400 font-bold">{stars}</span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed font-semibold">"{ur.text}"</p>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : subview === 'personal' ? (
         <div className="space-y-4">
           {/* Review creation form */}
           <div className="hc-card rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3 text-left">
             <h3 className="text-xs font-black text-slate-300 uppercase flex items-center gap-1.5">
-              관람 공연 배리어프리 리뷰 작성
+              관람 공연 배리어프리 후기 작성
             </h3>
 
             <form onSubmit={handleCreateReview} className="space-y-3">
@@ -323,7 +527,7 @@ export default function ProfileTab({
                 type="submit"
                 className="hc-button-primary w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                리뷰 저장
+                후기 저장
               </button>
             </form>
           </div>
@@ -440,7 +644,15 @@ export default function ProfileTab({
                 ) : (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div 
+                        onClick={() => {
+                          setSelectedProfileDetail(searchResult);
+                          setSelectedDetailTab('history');
+                          onAnnounce(`${searchResult.name} 님의 프로필 상세를 확인합니다.`);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition-all"
+                        title="프로필 상세 보기"
+                      >
                         {searchResult.avatarUrl ? (
                           searchResult.avatarUrl.startsWith('http') ? (
                             <img
@@ -618,7 +830,20 @@ export default function ProfileTab({
                       <div className="divide-y divide-slate-805 space-y-2.5">
                         {followingList.map((person) => (
                           <div key={person.id} className="flex items-center justify-between pt-2.5 first:pt-0">
-                            <div className="flex items-center gap-2">
+                            <div 
+                              onClick={() => {
+                                setSelectedProfileDetail({
+                                  userId: person.id,
+                                  name: person.name,
+                                  role: person.label,
+                                  type: person.label.includes('지체') || person.label.includes('시각') ? '♿ 동행 희망' : '🤝 보조 헬퍼'
+                                });
+                                setSelectedDetailTab('history');
+                                onAnnounce(`${person.name} 님의 프로필 상세를 확인합니다.`);
+                              }}
+                              className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition-all"
+                              title="프로필 상세 보기"
+                            >
                               <div className="w-9 h-9 rounded-full bg-cyan-600/20 text-cyan-400 font-bold border border-cyan-500/30 flex items-center justify-center text-xs">
                                 {person.name.substring(0, 2)}
                               </div>
@@ -648,7 +873,20 @@ export default function ProfileTab({
                       const isFl = followingIds.includes(person.id);
                       return (
                         <div key={person.id} className="flex items-center justify-between pt-2.5 first:pt-0">
-                          <div className="flex items-center gap-2">
+                          <div 
+                            onClick={() => {
+                              setSelectedProfileDetail({
+                                userId: person.id,
+                                name: person.name,
+                                role: person.label,
+                                type: person.label.includes('지체') || person.label.includes('시각') ? '♿ 동행 희망' : '🤝 보조 헬퍼'
+                              });
+                              setSelectedDetailTab('history');
+                              onAnnounce(`${person.name} 님의 프로필 상세를 확인합니다.`);
+                            }}
+                            className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition-all"
+                            title="프로필 상세 보기"
+                          >
                             <div className="w-9 h-9 rounded-full bg-indigo-600/20 text-indigo-455 font-bold border border-indigo-505/30 flex items-center justify-center text-xs">
                               {person.name.substring(0, 2)}
                             </div>
@@ -696,7 +934,20 @@ export default function ProfileTab({
                 return (
                   <div key={gr.id} className="hc-card bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 text-left">
                     <div className="flex items-center justify-between border-b border-slate-800/60 pb-2 flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
+                      <div 
+                        onClick={() => {
+                          setSelectedProfileDetail({
+                            userId: gr.userId,
+                            name: gr.userName,
+                            role: gr.userRole,
+                            type: gr.userRole === '동행 필요 관객' ? '♿ 동행 희망' : gr.userRole === '서포터즈' ? '🤝 보조 헬퍼' : '🎭 일반 관람'
+                          });
+                          setSelectedDetailTab('history');
+                          onAnnounce(`${gr.userName} 님의 프로필 상세를 확인합니다.`);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition-all"
+                        title="프로필 상세 보기"
+                      >
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-700 to-indigo-500 flex items-center justify-center text-white text-xs font-black shadow shadow-indigo-500/20">
                           {gr.userName.substring(0, 2)}
                         </div>
