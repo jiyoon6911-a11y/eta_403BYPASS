@@ -844,45 +844,6 @@ function AppContent() {
                   </span>
                 </button>
 
-                {/* S-MAP app icon */}
-                <button 
-                  onClick={() => triggerHomeNotification('S-MAP 실시간 3D 도면 기능은 403 BYPASS 앱 실행 후 [안내맵] 탭에서 구동할 수 있습니다.')} 
-                  className="flex flex-col items-center justify-center gap-1.5 col-span-1 focus:outline-none focus:ring-0 active:scale-90 transition-transform group"
-                >
-                  <div className="w-12 h-12 rounded-[14px] bg-[#4f46e5] flex items-center justify-center shadow-lg group-hover:scale-105 active:scale-95 transition-all">
-                    <Map className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-[10px] font-semibold text-slate-300 text-center tracking-tight truncate w-full filter drop-shadow">
-                    {t("보행 안내맵")}
-                  </span>
-                </button>
-
-                {/* Matching Helper App */}
-                <button 
-                  onClick={() => triggerHomeNotification('1대1 매니저 동행 및 수어 상담 안심 예약은 403 BYPASS 앱을 먼저 실행하고 신청해 주십시오.')} 
-                  className="flex flex-col items-center justify-center gap-1.5 col-span-1 focus:outline-none focus:ring-0 active:scale-90 transition-transform group"
-                >
-                  <div className="w-12 h-12 rounded-[14px] bg-[#10b981] flex items-center justify-center shadow-lg group-hover:scale-105 active:scale-95 transition-all">
-                    <Calendar className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-[10px] font-semibold text-slate-300 text-center tracking-tight truncate w-full filter drop-shadow">
-                    {t("예약 매칭")}
-                  </span>
-                </button>
-
-                {/* AR Cam App Icon */}
-                <button 
-                  onClick={() => triggerHomeNotification('실시간 카메라 장애물 탐소 센싱 장치는 403 BYPASS 앱 내 전용 카메라 스코프에서 즉치 구동 전송됩니다.')} 
-                  className="flex flex-col items-center justify-center gap-1.5 col-span-1 focus:outline-none focus:ring-0 active:scale-90 transition-transform group"
-                >
-                  <div className="w-12 h-12 rounded-[14px] bg-[#a855f7] flex items-center justify-center shadow-lg group-hover:scale-105 active:scale-95 transition-all">
-                    <Accessibility className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-[10px] font-semibold text-slate-300 text-center tracking-tight truncate w-full filter drop-shadow">
-                    {t("안심 렌즈")}
-                  </span>
-                </button>
-
               </div>
             </div>
 

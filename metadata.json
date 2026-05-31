@@ -3,6 +3,7 @@
   "description": "장벽 없는 보편적 예술 관람 및 매칭 플랫폼",
   "requestFramePermissions": [
     "camera",
+    "microphone",
     "geolocation"
   ],
   "majorCapabilities": [

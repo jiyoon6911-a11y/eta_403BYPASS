@@ -21,39 +21,46 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTagFilters, setSelectedTagFilters] = useState<string[]>([]);
   const [isListening, setIsListening] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceRecognitionRef, setVoiceRecognitionRef] = useState<any>(null);
 
   const startVoiceSearch = () => {
+    setShowVoiceModal(true);
+    setVoiceTranscript('');
+    
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("이 브라우저는 음성 검색을 지원하지 않습니다. Chrome 주소창 설정이나 데스크톱 브라우저를 확인해 주세요.");
+      setIsListening(true);
+      setVoiceTranscript("기기 음성 라이브러리가 비연동 상태입니다. 아래 추천 명령어 또는 맞춤 키워드를 직접 터치하거나 키보드로 입력하면 음성처럼 자연스럽게 검색 처리됩니다.");
+      onAnnounce(t("음성 검색 화면이 실행되었습니다."));
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
       recognition.lang = "ko-KR";
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
+        setVoiceTranscript(t("듣고 있습니다... 말씀해 주세요 🎙️"));
         onAnnounce(t("음성 검색 듣기 중... 말씀해 주세요."));
       };
 
       recognition.onresult = (event: any) => {
-        const text = event.results[0][0].transcript;
-        setSearchQuery(text);
-        onAnnounce(`"${text}" ${t("공연을 음성으로 검색합니다.")}`);
+        const text = event.results[event.results.length - 1][0].transcript;
+        setVoiceTranscript(text);
       };
 
       recognition.onerror = (err: any) => {
         console.error("Speech Recognition Error", err);
-        setIsListening(false);
         if (err.error === 'not-allowed') {
           onAnnounce(t("마이크 접근 권한이 필요합니다."));
-          alert("마이크 사용 권한이 필요합니다. 브라우저 주소창 왼쪽 자물쇠 아이콘에서 마이크 권한을 허용해 주십시오.");
+          setVoiceTranscript(t("마이크 비인가 또는 권한 거부 상태입니다. 직접 터치 키워드를 사용해 보세요."));
         } else {
-          onAnnounce(t("음성 인식 오류:") + " " + err.error);
+          onAnnounce(t("음성 인식 알림:") + " " + err.error);
         }
       };
 
@@ -62,9 +69,32 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
       };
 
       recognition.start();
+      setVoiceRecognitionRef(recognition);
     } catch (e) {
       console.error(e);
       setIsListening(false);
+    }
+  };
+
+  const handleApplyVoiceQuery = (queryText: string) => {
+    setSearchQuery(queryText);
+    setShowVoiceModal(false);
+    setIsListening(false);
+    if (voiceRecognitionRef) {
+      try {
+        voiceRecognitionRef.stop();
+      } catch (e) {}
+    }
+    onAnnounce(`"${queryText}" ` + t("공연을 음성으로 검색합니다."));
+  };
+
+  const stopVoiceSearch = () => {
+    setShowVoiceModal(false);
+    setIsListening(false);
+    if (voiceRecognitionRef) {
+      try {
+        voiceRecognitionRef.stop();
+      } catch (e) {}
     }
   };
 
@@ -461,6 +491,108 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
           </button>
         </div>
       </div>
+
+      {/* Immersive Voice Search Modal overlay */}
+      {showVoiceModal && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex flex-col justify-end p-4 transition-all">
+          <div className="w-full max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-[32px] p-6 space-y-6 shadow-2xl relative select-none">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                <span className="text-xs font-black text-rose-400 uppercase tracking-widest">{t("음성 인식 비서")}</span>
+              </div>
+              <button 
+                onClick={stopVoiceSearch}
+                className="p-1 px-1.5 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Listening Graphic (Bouncing bars & Glowing wave animation) */}
+            <div className="flex flex-col items-center justify-center py-6 space-y-4">
+              <div className="relative flex items-center justify-center w-20 h-20">
+                <div className="absolute inset-0 bg-rose-500/10 rounded-full animate-ping pointer-events-none" />
+                <div className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-rose-600 to-rose-400 flex items-center justify-center shadow-[0_0_25px_rgba(244,63,94,0.4)]">
+                  <Mic className="w-7 h-7 text-white animate-pulse" />
+                </div>
+              </div>
+
+              {/* Bouncing Bars visualization */}
+              <div className="flex items-end justify-center gap-1 h-8 px-4">
+                <div className="w-1 bg-[#00E5FF] rounded-full animate-[bounce_0.8s_infinite_100ms] h-4" />
+                <div className="w-1 bg-[#00E5FF] rounded-full animate-[bounce_0.8s_infinite_300ms] h-7" />
+                <div className="w-1 bg-cyan-400 rounded-full animate-[bounce_0.8s_infinite_0s] h-5" />
+                <div className="w-1 bg-emerald-400 rounded-full animate-[bounce_0.8s_infinite_150ms] h-8" />
+                <div className="w-1 bg-rose-500 rounded-full animate-[bounce_0.8s_infinite_200ms] h-6" />
+                <div className="w-1 bg-purple-500 rounded-full animate-[bounce_0.8s_infinite_400ms] h-4" />
+              </div>
+            </div>
+
+            {/* Real-time speech transcription status */}
+            <div className="text-center space-y-2">
+              <div className="min-h-[50px] px-2 flex items-center justify-center">
+                <p className="text-sm font-extrabold text-white leading-relaxed text-center w-full">
+                  {voiceTranscript ? `"${voiceTranscript}"` : t("듣고 있습니다... 무엇이든 말씀해 보세요.")}
+                </p>
+              </div>
+              <p className="text-[10px] text-slate-500 font-bold">
+                {isListening ? "실시간 목소리를 텍스트로 보정 중입니다." : "음성 인식이 대기 상태입니다."}
+              </p>
+            </div>
+
+            {/* Simulated Voice Tags / Preset quick search suggestions */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block text-left">
+                💡 {t("이런 단어들로 말해보기 (터치하여 자동 입력포팅)")}:
+              </span>
+              <div className="flex flex-wrap gap-1.5 justify-start">
+                {[
+                  { icon: "🎭", text: "오페라의 유령" },
+                  { icon: "✍️", text: "새로운 연극적 기쁨" },
+                  { icon: "🎸", text: "밴드 페스티벌" },
+                  { icon: "♿", text: "휠체어석" },
+                  { icon: "💬", text: "자막제공" },
+                  { icon: "🎙️", text: "음성설명" },
+                  { icon: "👁️", text: "수어통역" }
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleApplyVoiceQuery(item.text)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 text-[11px] text-slate-200 hover:text-[#00E5FF] hover:bg-slate-750 rounded-xl transition-all font-black border border-slate-700/60 cursor-pointer"
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick manual text textarea input description */}
+            <div className="pt-2 border-t border-slate-800 space-y-3">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={voiceTranscript}
+                  onChange={(e) => setVoiceTranscript(e.target.value)}
+                  placeholder="또는 여기에 음성 입력 텍스트를 작성하세요..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 text-left"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyVoiceQuery(voiceTranscript || "오페라의 유령")}
+                  className="px-4 py-2 bg-[#00E5FF] hover:bg-cyan-400 text-slate-950 font-black text-xs rounded-xl transition-all cursor-pointer shadow-lg shrink-0"
+                >
+                  {t("검색 완료")}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
