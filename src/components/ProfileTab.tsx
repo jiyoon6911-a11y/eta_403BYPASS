@@ -36,6 +36,7 @@ export default function ProfileTab({
   highContrast,
 }: ProfileTabProps) {
   const [subview, setSubview] = useState<'personal' | 'social'>('personal');
+  const [socialTab, setSocialTab] = useState<'following' | 'followers'>('following');
 
   // Review Form state
   const [showInput, setShowInput] = useState('새로운 연극적 기쁨');
@@ -179,9 +180,11 @@ export default function ProfileTab({
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
               <h3 className="text-sm font-extrabold text-white">{currentUser.name} 님</h3>
-              <span className="hc-badge px-1.5 py-0.5 rounded text-[8px] bg-blue-500/10 text-blue-400 font-bold tracking-wider border border-blue-500/20 uppercase">
-                {currentUser.role || '보안 관람객'}
-              </span>
+              {currentUser.role && currentUser.role !== '일반' && (
+                <span className="hc-badge px-1.5 py-0.5 rounded text-[8px] bg-blue-500/10 text-blue-400 font-bold tracking-wider border border-blue-500/20 uppercase">
+                  {currentUser.role}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5 text-[10px]">
               <span className="text-cyan-400 font-extrabold font-mono">@{currentUser.userId}</span>
@@ -519,50 +522,163 @@ export default function ProfileTab({
             )}
           </div>
 
-          {/* Social Recommendations */}
-          <div className="hc-card rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
-            <h4 className="text-xs font-black text-slate-300 uppercase flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-emerald-400 animate-pulse" />
-              추천 네트워크
-            </h4>
+          {/* Following & Followers Networks */}
+          {(() => {
+            const ALL_NETWORK_USERS = [
+              { id: 'art_pioneer', name: '백예람', label: '♿ 지체' },
+              { id: 'culture_helper', name: '김지민', label: '🤝 서포터' },
+              { id: 'wheel_champion', name: '박정우', label: '♿ 지체' },
+              { id: 'silver_star', name: '이지은', label: '👵 실버' },
+              { id: 'vision_hero', name: '최요한', label: '👁️ 시각' },
+            ];
 
-            <div className="divide-y divide-slate-805 space-y-2.5">
-              {[
-                { id: 'art_pioneer', name: '백예람', label: '♿ 지체' },
-                { id: 'culture_helper', name: '김지민', label: '🤝 서포터' },
-                { id: 'wheel_champion', name: '박정우', label: '♿ 지체' },
-              ].map((person, idx) => {
-                const isFl = followingIds.includes(person.id);
-                return (
-                  <div key={person.id} className="flex items-center justify-between pt-2.5 first:pt-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 rounded-full bg-cyan-600/20 text-cyan-400 font-bold border border-cyan-500/30 flex items-center justify-center text-xs">
-                        {person.name.substring(0, 2)}
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-extrabold text-white">{person.name}</span>
-                          <span className="text-[9px] text-cyan-400 font-bold bg-cyan-500/10 px-1 rounded">{person.label}</span>
+            const followingList = ALL_NETWORK_USERS.filter(p => followingIds.includes(p.id));
+            followingIds.forEach(id => {
+              if (!followingList.some(p => p.id === id)) {
+                const reviewUser = globalReviews.find(r => r.userId === id);
+                followingList.push({
+                  id,
+                  name: reviewUser ? reviewUser.userName : id,
+                  label: reviewUser ? reviewUser.userRole : '🎭 관객',
+                });
+              }
+            });
+
+            const followersList = [
+              { id: 'art_pioneer', name: '백예람', label: '♿ 지체' },
+              { id: 'culture_helper', name: '김지민', label: '🤝 서포터' },
+              { id: 'vision_hero', name: '최요한', label: '👁️ 시각' }
+            ].filter(p => p.id !== currentUser.userId);
+
+            return (
+              <div className="hc-card rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-4">
+                {/* Tabs for Social Interaction */}
+                <div className="flex border-b border-slate-800 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSocialTab('following');
+                      onAnnounce("팔로잉 목록을 활성화했습니다.");
+                    }}
+                    className={`flex-1 text-center py-1 text-xs font-black tracking-wide uppercase transition-colors relative cursor-pointer focus:outline-none ${
+                      socialTab === 'following' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-350'
+                    }`}
+                  >
+                    팔로잉 ({followingList.length})
+                    {socialTab === 'following' && (
+                      <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSocialTab('followers');
+                      onAnnounce("팔로워 목록을 활성화했습니다.");
+                    }}
+                    className={`flex-1 text-center py-1 text-xs font-black tracking-wide uppercase transition-colors relative cursor-pointer focus:outline-none ${
+                      socialTab === 'followers' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-350'
+                    }`}
+                  >
+                    팔로워 ({followersList.length})
+                    {socialTab === 'followers' && (
+                      <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
+                    )}
+                  </button>
+                </div>
+
+                {socialTab === 'following' ? (
+                  <div className="space-y-2.5">
+                    {followingList.length === 0 ? (
+                      <div className="text-center py-4 space-y-3">
+                        <p className="text-[11px] text-slate-500 font-bold">아직 팔로잉한 멤버가 없습니다.</p>
+                        <p className="text-[10px] text-slate-400 font-medium">아래 추천 회원을 팔로우 해보세요!</p>
+                        <div className="pt-2.5 border-t border-slate-800/40 space-y-2 text-left">
+                          {ALL_NETWORK_USERS.slice(0, 3).map((person) => (
+                            <div key={person.id} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-cyan-600/20 text-cyan-400 font-bold border border-cyan-500/30 flex items-center justify-center text-[10px]">
+                                  {person.name.substring(0, 2)}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[11.5px] font-extrabold text-white">{person.name}</span>
+                                  <span className="text-[8px] text-cyan-400 font-bold bg-cyan-500/10 px-1 rounded">{person.label}</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => onToggleFollow(person.id, person.name)}
+                                className="text-[10px] font-bold px-2.5 py-0.5 rounded border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 cursor-pointer"
+                              >
+                                팔로우
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                        <span className="text-[9px] font-mono text-slate-500 block">@{person.id}</span>
                       </div>
-                    </div>
-                    
-                    <button
-                      onClick={() => onToggleFollow(person.id, person.name)}
-                      className={`text-[10px] font-black px-3 py-1 rounded-lg border transition-all ${
-                        isFl
-                          ? 'border-slate-700 bg-slate-800 text-slate-300'
-                          : 'border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-                      }`}
-                    >
-                      {isFl ? '팔로잉 취소' : '팔로우'}
-                    </button>
+                    ) : (
+                      <div className="divide-y divide-slate-805 space-y-2.5">
+                        {followingList.map((person) => (
+                          <div key={person.id} className="flex items-center justify-between pt-2.5 first:pt-0">
+                            <div className="flex items-center gap-2">
+                              <div className="w-9 h-9 rounded-full bg-cyan-600/20 text-cyan-400 font-bold border border-cyan-500/30 flex items-center justify-center text-xs">
+                                {person.name.substring(0, 2)}
+                              </div>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-extrabold text-white">{person.name}</span>
+                                  <span className="text-[9px] text-cyan-400 font-bold bg-cyan-500/10 px-1 rounded">{person.label}</span>
+                                </div>
+                                <span className="text-[9px] font-mono text-slate-500 block text-left">@{person.id}</span>
+                              </div>
+                            </div>
+                            
+                            <button
+                              onClick={() => onToggleFollow(person.id, person.name)}
+                              className="text-[10px] font-black px-3 py-1 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 cursor-pointer hover:bg-slate-750 transition-all"
+                            >
+                              팔로잉 취소
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                ) : (
+                  <div className="divide-y divide-slate-805 space-y-2.5">
+                    {followersList.map((person) => {
+                      const isFl = followingIds.includes(person.id);
+                      return (
+                        <div key={person.id} className="flex items-center justify-between pt-2.5 first:pt-0">
+                          <div className="flex items-center gap-2">
+                            <div className="w-9 h-9 rounded-full bg-indigo-600/20 text-indigo-455 font-bold border border-indigo-505/30 flex items-center justify-center text-xs">
+                              {person.name.substring(0, 2)}
+                            </div>
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-extrabold text-white">{person.name}</span>
+                                <span className="text-[9px] text-cyan-400 font-bold bg-cyan-500/10 px-1 rounded">{person.label}</span>
+                              </div>
+                              <span className="text-[9px] font-mono text-slate-500 block text-left">@{person.id}</span>
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={() => onToggleFollow(person.id, person.name)}
+                            className={`text-[10px] font-black px-3 py-1 rounded-lg border transition-all cursor-pointer ${
+                              isFl
+                                ? 'border-slate-700 bg-slate-800 text-slate-300'
+                                : 'border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+                            }`}
+                          >
+                            {isFl ? '맞팔 중' : '맞팔로우'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Social Communities Feed */}
           <div className="space-y-3">
