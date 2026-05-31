@@ -176,10 +176,10 @@ export const SIDEBAR_TRANSLATIONS: Record<string, Record<Exclude<Language, 'ko'>
     ja: "使用案内",
     zh: "使用指南"
   },
-  "스마트폰 화면 중앙의 403 BYPASS 아이콘을 눌러 체험을 시작합니다.": {
-    en: "Press the 403 BYPASS icon in the center of the mobile screen to begin.",
-    ja: "スマートフォン画面中央の 403 BYPASS アイコンを押して体験を開始します。",
-    zh: "点击智能手机屏幕中央的 403 BYPASS 图标以开始体验。"
+  "스마트폰 화면 403 BYPASS 아이콘을 눌러 앱을 실행합니다.": {
+    en: "Press the 403 BYPASS icon on the mobile screen to launch the app.",
+    ja: "スマートフォン画面의 403 BYPASS 아이콘을 눌러 앱을 실행합니다。",
+    zh: "点击智能手机屏幕上的 403 BYPASS 图标以运行该应用。"
   },
   "원하는 기능을 선택하여 자유롭게 체험해 보세요.": {
     en: "Select any feature you want and experience it freely.",

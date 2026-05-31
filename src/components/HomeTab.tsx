@@ -19,7 +19,54 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
     return localStorage.getItem('bypass_supporter_applied') === 'true';
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
+  const [selectedTagFilters, setSelectedTagFilters] = useState<string[]>([]);
+  const [isListening, setIsListening] = useState(false);
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("이 브라우저는 음성 검색을 지원하지 않습니다. Chrome 주소창 설정이나 데스크톱 브라우저를 확인해 주세요.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ko-KR";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        onAnnounce(t("음성 검색 듣기 중... 말씀해 주세요."));
+      };
+
+      recognition.onresult = (event: any) => {
+        const text = event.results[0][0].transcript;
+        setSearchQuery(text);
+        onAnnounce(`"${text}" ${t("공연을 음성으로 검색합니다.")}`);
+      };
+
+      recognition.onerror = (err: any) => {
+        console.error("Speech Recognition Error", err);
+        setIsListening(false);
+        if (err.error === 'not-allowed') {
+          onAnnounce(t("마이크 접근 권한이 필요합니다."));
+          alert("마이크 사용 권한이 필요합니다. 브라우저 주소창 왼쪽 자물쇠 아이콘에서 마이크 권한을 허용해 주십시오.");
+        } else {
+          onAnnounce(t("음성 인식 오류:") + " " + err.error);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+      setIsListening(false);
+    }
+  };
 
   // Sync supporter applied status on mount
   React.useEffect(() => {
@@ -81,7 +128,7 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
     const matchesGenre = selectedGenre === '전체' || show.genre === selectedGenre;
     
     // 2. Barrier-free tag filter
-    const matchesTag = !selectedTagFilter || show.tags.includes(selectedTagFilter);
+    const matchesTag = selectedTagFilters.length === 0 || selectedTagFilters.every(t => show.tags.includes(t));
 
     // 3. Search query filter
     const lowerQuery = searchQuery.trim().toLowerCase();
@@ -102,12 +149,14 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
   };
 
   const handleTagFilterClick = (tag: string) => {
-    if (selectedTagFilter === tag) {
-      setSelectedTagFilter(null);
-      onAnnounce(t("무장벽 태그 필터를 해제하여 전체 목록으로 원복하였습니다."));
+    if (selectedTagFilters.includes(tag)) {
+      const updated = selectedTagFilters.filter(t => t !== tag);
+      setSelectedTagFilters(updated);
+      onAnnounce(`[${t(tag)}] 필터를 해제하였습니다.`);
     } else {
-      setSelectedTagFilter(tag);
-      onAnnounce(`[${t(tag)}]` + t("지원 가능 조건으로 공연을 필터링합니다."));
+      const updated = [...selectedTagFilters, tag];
+      setSelectedTagFilters(updated);
+      onAnnounce(`[${t(tag)}] 지원 필터를 추가하였습니다.`);
     }
   };
 
@@ -127,8 +176,8 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("어떤 공연을 찾으시나요?")}
-            className="w-full text-sm bg-transparent text-white focus:outline-none placeholder-slate-500 font-semibold pr-8"
+            placeholder={isListening ? t("듣고 있습니다... 말씀해 주세요 🎙️") : t("어떤 공연을 찾으시나요?")}
+            className="w-full text-sm bg-transparent text-white focus:outline-none placeholder-slate-500 font-semibold pr-16"
           />
           {searchQuery ? (
             <button
@@ -136,17 +185,22 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
                 setSearchQuery('');
                 onAnnounce(t('검색 필터를 초기화해 전체 공연 목록으로 환원했습니다.'));
               }}
-              className="absolute right-12 p-1 text-slate-400 hover:text-white"
+              className="absolute right-14 p-1 text-slate-400 hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
           ) : null}
           <button 
-            onClick={() => onAnnounce(t("실시간 보행 음성 보이스 탐색 엔진을 로드하고 있습니다."))}
-            className="p-1 px-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 transition-all text-[#00E5FF] flex items-center justify-center shrink-0 cursor-pointer"
+            onClick={startVoiceSearch}
+            className={`p-1 px-2 rounded-xl transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+              isListening 
+                ? 'bg-rose-500/25 text-rose-500 animate-pulse border border-rose-500/40' 
+                : 'bg-slate-800/80 hover:bg-slate-800 text-[#00E5FF]'
+            } select-none`}
             title={t("음성 검색")}
           >
-            <Mic className="w-4 h-4" />
+            <Mic className={`w-4 h-4 ${isListening ? 'scale-110' : ''}`} />
+            {isListening && <span className="text-[8px] font-black ml-1 text-rose-400 animate-pulse uppercase tracking-widest">ON</span>}
           </button>
         </div>
       </div>
@@ -171,10 +225,10 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
         })}
       </div>
 
-      {/* 2.5 Quick Accessibility filter pill row - matching mockup row perfectly */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+      {/* 2.5 Quick Accessibility filter pill row - wrapped to fit completely on-screen without clipping and supports multi-select */}
+      <div className="flex flex-wrap items-center gap-1.5 pb-1">
         {tagFilters.map((tf) => {
-          const isSelected = selectedTagFilter === tf.tag;
+          const isSelected = selectedTagFilters.includes(tf.tag);
           return (
             <button
               key={tf.tag}
@@ -243,7 +297,7 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
                         </h4>
                       </div>
                       <div className="flex items-center justify-between text-[8px] pt-1 border-t border-slate-900/80">
-                        <span className="text-emerald-400 font-bold truncate max-w-[160px]">
+                        <span className="text-emerald-400 font-bold truncate">
                           💡 Match: {show.tags.filter(t_tag => 
                             (currentUser.requiredSupports || []).some(req => 
                               (req === "휠체어 접근 및 리프트" && ["휠체어석", "경사로통행", "휠체어동행"].includes(t_tag)) ||
@@ -252,7 +306,6 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
                             )
                           ).map(x => t(x)).join(', ') || t('전체 배리어프리 최적')}
                         </span>
-                        <span className="font-extrabold text-[#00E5FF] shrink-0">{t("무벽지수")} {show.score}%</span>
                       </div>
                     </div>
                   </div>
@@ -268,7 +321,7 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-black text-slate-300 tracking-wide uppercase flex items-center gap-1.5">
             <Award className="w-4 h-4 text-[#00E5FF]" />
-            {t("맞춤 장애인 지원 완비 공연 목록")}
+            {t("공연 목록")}
           </h3>
           <span className="text-[10px] text-slate-500 font-bold count-badge">
             {filteredShows.length} {t("개 매칭")}
@@ -282,7 +335,7 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
               <button 
                 onClick={() => {
                   setSelectedGenre('전체');
-                  setSelectedTagFilter(null);
+                  setSelectedTagFilters([]);
                   setSearchQuery('');
                 }}
                 className="text-[10px] text-[#00E5FF] mt-2 underline font-bold cursor-pointer"
@@ -292,12 +345,6 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
             </div>
           ) : (
             filteredShows.map((show) => {
-              const indexColorClass = show.score >= 90
-                ? 'text-emerald-400 animate-pulse'
-                : show.score >= 60
-                ? 'text-[#00E5FF]'
-                : 'text-amber-400';
-
               return (
                 <div
                   key={show.id}
@@ -333,7 +380,7 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
                       <div className="flex items-center justify-between pt-1">
                         <div className="flex flex-wrap gap-1">
                           {show.tags.map((tag_item, idx) => {
-                            const isCurrentTagActive = selectedTagFilter === tag_item;
+                            const isCurrentTagActive = selectedTagFilters.includes(tag_item);
                             return (
                               <span
                                 key={idx}
@@ -347,14 +394,6 @@ export default function HomeTab({ currentUser, onShowSelect, onAnnounce, highCon
                               </span>
                             );
                           })}
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-[8px] text-slate-500 block uppercase font-mono tracking-widest hc-text-mute">
-                            {t("무벽안심지수")}
-                          </span>
-                          <span className={`text-xs font-black ${indexColorClass}`}>
-                            {show.score}%
-                          </span>
                         </div>
                       </div>
                     </div>

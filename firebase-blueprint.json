@@ -11,12 +11,32 @@
         "role": { "type": "string" }
       },
       "required": ["userId", "email", "name", "role"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A barrier-free show quality review written by a user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userRole": { "type": "string" },
+        "show": { "type": "string" },
+        "rating": { "type": "number" },
+        "text": { "type": "string" },
+        "comments": { "type": "array" }
+      },
+      "required": ["id", "userId", "userName", "userRole", "show", "rating", "text"]
     }
   },
   "firestore": {
-    "/users/{userId}": {
+    "/users/{email}": {
       "schema": "User",
       "description": "Information about registered users of the app"
+    },
+    "/reviews/{reviewDocId}": {
+      "schema": "Review",
+      "description": "Show reviews containing quality scores, feedback, and user comments"
     }
   }
 }

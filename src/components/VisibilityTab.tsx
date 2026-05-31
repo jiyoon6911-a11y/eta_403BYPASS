@@ -12,6 +12,8 @@ import {
   CalendarPlus, 
   Trash2, 
   ChevronRight, 
+  ChevronUp,
+  ChevronDown,
   UserCheck, 
   Info, 
   Sparkles,
@@ -23,6 +25,197 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { Booking } from '../types';
+
+const START_TIMES = [
+  '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
+];
+
+const END_TIMES = [
+  '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'
+];
+
+interface DialTimePickerProps {
+  value: string;
+  onChange: (val: string) => void;
+  accentCol?: 'blue' | 'cyan';
+}
+
+function DialTimePicker({ value, onChange, accentCol = 'blue' }: DialTimePickerProps) {
+  // Parse ranges, fallback gracefully
+  const parseRange = (val: string) => {
+    if (val && val.includes('~')) {
+      const parts = val.split('~').map(p => p.trim());
+      return { start: parts[0] || '12:00', end: parts[1] || '14:00' };
+    }
+    const safeVal = val || '12:00';
+    const hour = parseInt(safeVal.split(':')[0]) || 12;
+    const min = safeVal.split(':')[1] || '00';
+    const endH = Math.min(hour + 2, 22);
+    return { start: safeVal, end: `${String(endH).padStart(2, '0')}:${min}` };
+  };
+
+  const { start, end } = parseRange(value);
+
+  let startIndex = START_TIMES.indexOf(start);
+  if (startIndex === -1) startIndex = 4; // 12:00
+
+  let endIndex = END_TIMES.indexOf(end);
+  if (endIndex === -1) endIndex = 5; // 14:00
+
+  const handleStartChange = (idx: number) => {
+    if (idx >= 0 && idx < START_TIMES.length) {
+      const newStart = START_TIMES[idx];
+      let newEnd = end;
+      
+      const startH = parseInt(newStart.split(':')[0]);
+      const endH = parseInt(end.split(':')[0]);
+      if (endH <= startH) {
+        const nextEndH = Math.min(startH + 2, 22);
+        newEnd = `${String(nextEndH).padStart(2, '0')}:00`;
+      }
+      onChange(`${newStart} ~ ${newEnd}`);
+    }
+  };
+
+  const handleEndChange = (idx: number) => {
+    if (idx >= 0 && idx < END_TIMES.length) {
+      const newEnd = END_TIMES[idx];
+      let newStart = start;
+
+      const startH = parseInt(start.split(':')[0]);
+      const endH = parseInt(newEnd.split(':')[0]);
+      if (startH >= endH) {
+        const prevStartH = Math.max(endH - 2, 8);
+        newStart = `${String(prevStartH).padStart(2, '0')}:00`;
+      }
+      onChange(`${newStart} ~ ${newEnd}`);
+    }
+  };
+
+  // Helper rows
+  const prevStart = startIndex > 0 ? START_TIMES[startIndex - 1] : null;
+  const currStart = START_TIMES[startIndex];
+  const nextStart = startIndex < START_TIMES.length - 1 ? START_TIMES[startIndex + 1] : null;
+
+  const prevEnd = endIndex > 0 ? END_TIMES[endIndex - 1] : null;
+  const currEnd = END_TIMES[endIndex];
+  const nextEnd = endIndex < END_TIMES.length - 1 ? END_TIMES[endIndex + 1] : null;
+
+  const activeTextClass = accentCol === 'blue' ? 'text-blue-400' : 'text-cyan-400';
+
+  return (
+    <div className="relative py-3.5 px-4 bg-slate-950/70 rounded-2xl border border-slate-800/80 max-w-sm mx-auto shadow-inner overflow-hidden">
+      {/* Highlighting active center band */}
+      <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-10 bg-slate-800/50 rounded-xl border border-slate-700/30 pointer-events-none z-0" />
+
+      <div className="grid grid-cols-2 gap-4 relative z-10">
+        {/* Left Dial: Start Time (부터) */}
+        <div className="flex flex-col items-center">
+          {/* Top Arrow */}
+          <button
+            type="button"
+            onClick={() => handleStartChange(startIndex - 1)}
+            disabled={startIndex === 0}
+            className="p-1 text-slate-500 hover:text-slate-300 disabled:opacity-20 transition-all cursor-pointer active:scale-95"
+          >
+            <ChevronUp className="w-4 h-4 mx-auto" />
+          </button>
+
+          {/* Dial Drum list */}
+          <div className="h-24 flex flex-col justify-between items-center py-0.5 w-full select-none">
+            {/* Prev Item */}
+            <div
+              onClick={() => startIndex > 0 && handleStartChange(startIndex - 1)}
+              className={`h-6 flex items-center justify-center text-[11px] text-slate-600 hover:text-slate-400 font-mono font-medium transition-all ${
+                startIndex > 0 ? 'cursor-pointer hover:scale-105' : 'opacity-0 select-none'
+              }`}
+            >
+              {prevStart || ''}
+            </div>
+
+            {/* Current Item */}
+            <div className="h-8 flex items-center justify-center gap-1 text-[13px] font-black font-mono transition-all duration-200">
+              <span className={`scale-110 ${activeTextClass}`}>{currStart}</span>
+              <span className="text-[10px] font-sans text-slate-300 font-bold">부터</span>
+            </div>
+
+            {/* Next Item */}
+            <div
+              onClick={() => startIndex < START_TIMES.length - 1 && handleStartChange(startIndex + 1)}
+              className={`h-6 flex items-center justify-center text-[11px] text-slate-600 hover:text-slate-400 font-mono font-medium transition-all ${
+                startIndex < START_TIMES.length - 1 ? 'cursor-pointer hover:scale-105' : 'opacity-0 select-none'
+              }`}
+            >
+              {nextStart || ''}
+            </div>
+          </div>
+
+          {/* Bottom Arrow */}
+          <button
+            type="button"
+            onClick={() => handleStartChange(startIndex + 1)}
+            disabled={startIndex === START_TIMES.length - 1}
+            className="p-1 text-slate-500 hover:text-slate-300 disabled:opacity-20 transition-all cursor-pointer active:scale-95"
+          >
+            <ChevronDown className="w-4 h-4 mx-auto" />
+          </button>
+        </div>
+
+        {/* Right Dial: End Time (까지) */}
+        <div className="flex flex-col items-center">
+          {/* Top Arrow */}
+          <button
+            type="button"
+            onClick={() => handleEndChange(endIndex - 1)}
+            disabled={endIndex === 0}
+            className="p-1 text-slate-500 hover:text-slate-300 disabled:opacity-20 transition-all cursor-pointer active:scale-95"
+          >
+            <ChevronUp className="w-4 h-4 mx-auto" />
+          </button>
+
+          {/* Dial Drum list */}
+          <div className="h-24 flex flex-col justify-between items-center py-0.5 w-full select-none">
+            {/* Prev Item */}
+            <div
+              onClick={() => endIndex > 0 && handleEndChange(endIndex - 1)}
+              className={`h-6 flex items-center justify-center text-[11px] text-slate-600 hover:text-slate-400 font-mono font-medium transition-all ${
+                endIndex > 0 ? 'cursor-pointer hover:scale-105' : 'opacity-0 select-none'
+              }`}
+            >
+              {prevEnd || ''}
+            </div>
+
+            {/* Current Item */}
+            <div className="h-8 flex items-center justify-center gap-1 text-[13px] font-black font-mono transition-all duration-200">
+              <span className={`scale-110 ${activeTextClass}`}>{currEnd}</span>
+              <span className="text-[10px] font-sans text-slate-300 font-bold">까지</span>
+            </div>
+
+            {/* Next Item */}
+            <div
+              onClick={() => endIndex < END_TIMES.length - 1 && handleEndChange(endIndex + 1)}
+              className={`h-6 flex items-center justify-center text-[11px] text-slate-600 hover:text-slate-400 font-mono font-medium transition-all ${
+                endIndex < END_TIMES.length - 1 ? 'cursor-pointer hover:scale-105' : 'opacity-0 select-none'
+              }`}
+            >
+              {nextEnd || ''}
+            </div>
+          </div>
+
+          {/* Bottom Arrow */}
+          <button
+            type="button"
+            onClick={() => handleEndChange(endIndex + 1)}
+            disabled={endIndex === END_TIMES.length - 1}
+            className="p-1 text-slate-500 hover:text-slate-300 disabled:opacity-20 transition-all cursor-pointer active:scale-95"
+          >
+            <ChevronDown className="w-4 h-4 mx-auto" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface VisibilityTabProps {
   bookings: Booking[];
@@ -48,11 +241,11 @@ export default function VisibilityTab({
 
   // Scheduler controllers
   const [managerDate, setManagerDate] = useState('5월 24일');
-  const [managerTime, setManagerTime] = useState('13:00');
+  const [managerTime, setManagerTime] = useState('13:00 ~ 15:00');
   const [managerVenue, setManagerVenue] = useState('아르코예술극장 대극장');
 
   const [glassesDate, setGlassesDate] = useState('5월 24일');
-  const [glassesTime, setGlassesTime] = useState('12:00');
+  const [glassesTime, setGlassesTime] = useState('12:00 ~ 14:00');
   const [glassesVenue, setGlassesVenue] = useState('샤롯데씨어터');
 
   // Booking List Tab control
@@ -304,13 +497,13 @@ export default function VisibilityTab({
         /* ================= STEP 1: TEASER / LIST VIEW ================= */
         <div className="space-y-5">
           {/* Main Informational Header Banner */}
-          <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-900/60 to-cyan-900/40 border border-cyan-500/10 text-left space-y-1">
+          <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 text-left space-y-1">
             <span className="text-[9px] bg-[#00E5FF]/20 text-[#00E5FF] px-2 py-0.5 rounded font-bold uppercase tracking-wider">
               Safety & Access System
             </span>
             <h2 className="text-sm font-black text-white">동행 및 자막 보조 통합 예약 시스템</h2>
             <p className="text-xs text-slate-400 leading-normal font-semibold">
-              이동 장벽과 무대 정보 격차를 완전히 무장착 해제합니다. 원하는 보행 전담 매니저 에스코트 동행이나 현장 자막 수신기(스마트 글래스) 전용 예약을 체험해 보실 수 있습니다.
+              이동 장벽과 무대 정보 격차를 완전히 무장착 해제합니다. 접근성 매니저 동행이나 현장 자막 스마트 글래스 예약을 체험해 보실 수 있습니다.
             </p>
           </div>
 
@@ -387,7 +580,7 @@ export default function VisibilityTab({
                 <div className="flex items-center gap-2">
                   <Glasses className="w-4 h-4 text-cyan-400" />
                   <h3 className="text-xs sm:text-sm md:text-base font-black text-slate-100 group-hover:text-cyan-400 transition-colors leading-tight">
-                    AI 수어•무대 폐쇄 자막 스마트 안경 현장 대여
+                    AI 자막 스마트 안경 현장 대여
                   </h3>
                 </div>
                 <p className="text-[10.5px] sm:text-[11.5px] text-slate-400 leading-relaxed font-semibold">
@@ -594,37 +787,24 @@ export default function VisibilityTab({
 
             {/* Time selection */}
             <div className="space-y-1.5">
-              <span className="text-[9px] text-slate-400 font-black block text-left">시간 선택</span>
-              <div className="grid grid-cols-2 gap-2">
-                {['12:00', '14:30', '17:00', '18:00'].map((time) => {
-                  const isSelected = managerTime === time;
-                  return (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => setManagerTime(time)}
-                      className={`p-2 rounded-xl text-left border text-xs font-mono font-bold transition-all ${
-                        isSelected
-                          ? 'bg-blue-600 border-blue-500 text-white'
-                          : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      {time}
-                      <span className="float-right text-[8px] px-1 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 rounded font-sans">
-                        {isSelected ? '선택됨' : '예약가능'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <span className="text-[9px] text-slate-400 font-black block text-left">시간 선택 (다이얼 휠 조정)</span>
+              <DialTimePicker value={managerTime} onChange={setManagerTime} accentCol="blue" />
             </div>
 
             <button
               onClick={handleManagerBook}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-95"
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-md flex flex-col items-center justify-center gap-1 cursor-pointer hover:opacity-95"
             >
-              <CheckCircle className="w-4 h-4" />
-              <span>[{managerVenue}] {managerDate} {managerTime} 매니저 예약 수립 완료</span>
+              <span className="text-[11px] font-black tracking-wide text-blue-100 opacity-90 block">
+                [{managerVenue}]
+              </span>
+              <span className="text-sm font-black font-mono tracking-tight block">
+                {managerDate} {managerTime}
+              </span>
+              <span className="flex items-center gap-1 text-[13px] font-black text-white pt-0.5 mt-0.5 border-t border-blue-500/30 w-full justify-center">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-300" />
+                매니저 예약 완료
+              </span>
             </button>
           </div>
         </div>
@@ -639,7 +819,7 @@ export default function VisibilityTab({
             </span>
             <span className="flex items-center gap-1.5 text-sm font-black text-slate-100 pt-0.5">
               <Glasses className="w-4 h-4 text-cyan-400" />
-              AI 무대 자막안경 임대 신청서 작성
+              AI 무대 자막안경 신청서 작성
             </span>
             <p className="text-xs text-slate-400 font-medium">
               각 공연 인프라와 완벽 연계되어, 글래스를 착용한 채로 한글 문자 및 폐쇄 자막 안내를 보조받습니다.
@@ -744,46 +924,21 @@ export default function VisibilityTab({
 
               {/* Time selection */}
               <div className="space-y-1.5 text-left">
-                <span className="text-[10px] text-zinc-350 font-black block text-left">수령 가능 예정 시간 (극장 입장 40분 전 수령 권장)</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {['12:00', '14:30', '17:00', '19:30'].map((time) => {
-                    const isSelected = glassesTime === time;
-                    const isLocked = time === '19:30';
-
-                    return (
-                      <button
-                        key={time}
-                        disabled={isLocked}
-                        type="button"
-                        onClick={() => setGlassesTime(time)}
-                        className={`p-2 rounded-xl text-left border text-xs font-mono font-bold transition-all ${
-                          isLocked
-                            ? 'bg-slate-920 border-slate-900 text-slate-500 line-through cursor-not-allowed'
-                            : isSelected
-                            ? 'bg-cyan-600 border-cyan-500 text-white font-black'
-                            : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                        }`}
-                      >
-                        {time}
-                        {isLocked ? (
-                          <span className="float-right text-[8px] px-1 bg-red-500/10 text-red-500 border border-red-500/20 rounded font-sans">대여마감</span>
-                        ) : (
-                          <span className="float-right text-[8px] px-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-sans">
-                            {isSelected ? '선택됨' : '대여가능'}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                <span className="text-[10px] text-zinc-350 font-black block text-left">수령 및 반납 예정 시간 (다이얼 휠 조정)</span>
+                <DialTimePicker value={glassesTime} onChange={setGlassesTime} accentCol="cyan" />
               </div>
 
               <button
                 onClick={handleGlassesBook}
-                className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-cyan-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-4 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl transition-all shadow-lg shadow-cyan-500/10 flex flex-col items-center justify-center gap-1 cursor-pointer"
               >
-                <CheckCircle className="w-4 h-4" />
-                <span>자막안경 대여 예약 확정하기 (선택됨: {glassesDate} {glassesTime})</span>
+                <span className="flex items-center justify-center gap-1.5 text-sm font-black text-white">
+                  <CheckCircle className="w-4 h-4 text-emerald-300" />
+                  자막안경 대여 예약 확정하기
+                </span>
+                <span className="text-[11px] text-black font-black font-mono bg-cyan-100 px-3 py-1.5 rounded-lg mt-1 tracking-tight border border-cyan-300">
+                  ({glassesDate} {glassesTime})
+                </span>
               </button>
             </div>
           </div>
@@ -811,7 +966,7 @@ export default function VisibilityTab({
               className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/20 hover:border-cyan-500/40 rounded-lg text-[9px] font-black transition-all flex items-center gap-1 cursor-pointer select-none active:scale-95 whitespace-nowrap"
             >
               <Sparkles className="w-3 h-3 text-cyan-400" />
-              📊 테스트용 예약 자동 가설
+              📊 테스트용 가설
             </button>
           </div>
 
@@ -905,7 +1060,7 @@ export default function VisibilityTab({
                 )}
                 {activeBookingTab === 'today' && (
                   <p className="text-[10px] text-zinc-500 leading-normal font-medium max-w-xs mx-auto">
-                    5월 23일 (오늘자) 예약 건이 존재하지 않습니다. 우측 상단의 "📊 테스트용 예약 자동 가설" 버튼을 눌러보시면 바로 활성화 기입됩니다.
+                    5월 23일 (오늘자) 예약 건이 존재하지 않습니다. 우측 상단의 "📊 테스트용 가설" 버튼을 눌러보시면 바로 활성화 기입됩니다.
                   </p>
                 )}
                 {activeBookingTab === 'past' && (

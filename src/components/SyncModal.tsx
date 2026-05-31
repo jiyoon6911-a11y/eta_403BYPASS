@@ -26,11 +26,6 @@ export default function SyncModal({
   const [createdTicket, setCreatedTicket] = useState<Ticket | null>(null);
 
   const startScrapeSync = () => {
-    if (!username.trim()) {
-      alert("연동하고자 하는 예매처 아이디를 입력해주십시오.");
-      return;
-    }
-
     setSyncState('loading');
     setProgress(15);
     setStatusTitle('외부 예매 서버 보안 통로 정합 중...');
@@ -117,7 +112,7 @@ export default function SyncModal({
             <div className="flex items-center justify-between">
               <span className="text-xs font-black tracking-widest text-blue-400 font-mono flex items-center gap-1.5 hc-accent">
                 <Link className="w-4 h-4 text-cyan-400" />
-                타사 예매 대중 연동 시스템
+                타사 예매 연동
               </span>
               <button onClick={onClose} className="text-slate-400 hover:text-slate-100 p-1">
                 <X className="w-4 h-4" />
@@ -126,23 +121,23 @@ export default function SyncModal({
 
             {/* Content Switcher */}
             {syncState === 'idle' && (
-              <div className="space-y-3.5">
+              <div className="space-y-4">
                 <p className="text-[10px] text-slate-400 leading-relaxed font-semibold hc-text-mute">
                   * 대형 예매처 가상 게이트웨이를 구동하여 예매하신 좌석 연동 및 시각/청각 배리어프리 다자막 시나리오를 자동 탑재합니다.
                 </p>
 
                 <div className="space-y-1.5">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">
-                    1. 통합할 예매 사이트 선택
+                  <span className="text-[10px] font-bold text-slate-400 block pb-0.5">
+                    통합할 예매 사이트 선택
                   </span>
                   <div className="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
                       onClick={() => setProvider('interpark')}
-                      className={`py-2 text-[10px] font-bold rounded-xl border transition-all text-center ${
+                      className={`py-2.5 text-[10.5px] font-bold rounded-xl border transition-all text-center cursor-pointer ${
                         provider === 'interpark'
-                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 font-black'
-                          : 'border-slate-850 bg-slate-950 text-slate-400'
+                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 font-extrabold shadow-sm'
+                          : 'border-slate-850 bg-slate-950 text-slate-400 hover:text-slate-200'
                       }`}
                     >
                       인터파크 티켓
@@ -150,10 +145,10 @@ export default function SyncModal({
                     <button
                       type="button"
                       onClick={() => setProvider('yes24')}
-                      className={`py-2 text-[10px] font-bold rounded-xl border transition-all text-center ${
+                      className={`py-2.5 text-[10.5px] font-bold rounded-xl border transition-all text-center cursor-pointer ${
                         provider === 'yes24'
-                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 font-black'
-                          : 'border-slate-850 bg-slate-950 text-slate-400'
+                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 font-extrabold shadow-sm'
+                          : 'border-slate-850 bg-slate-950 text-slate-400 hover:text-slate-200'
                       }`}
                     >
                       YES24 티켓
@@ -161,10 +156,10 @@ export default function SyncModal({
                     <button
                       type="button"
                       onClick={() => setProvider('melon')}
-                      className={`py-2 text-[10px] font-bold rounded-xl border transition-all text-center ${
+                      className={`py-2.5 text-[10.5px] font-bold rounded-xl border transition-all text-center cursor-pointer ${
                         provider === 'melon'
-                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 font-black'
-                          : 'border-slate-850 bg-slate-950 text-slate-400'
+                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 font-extrabold shadow-sm'
+                          : 'border-slate-850 bg-slate-950 text-slate-400 hover:text-slate-200'
                       }`}
                     >
                       멜론 티켓
@@ -172,52 +167,9 @@ export default function SyncModal({
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="space-y-0.5">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">
-                      2. 예매처 계정 정보 입력
-                    </span>
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="예매처 아이디(이메일)"
-                      className="w-full text-xs bg-slate-950 text-white rounded-xl border border-slate-800 px-3 py-2.5 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="space-y-0.5">
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="비밀번호"
-                      className="w-full text-xs bg-slate-950 text-white rounded-xl border border-slate-800 px-3 py-2.5 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-805/50 space-y-1">
-                  <label className="flex items-center gap-1.5 text-[9px] text-slate-400 font-bold cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="rounded border-slate-800 bg-slate-950 accent-blue-500"
-                    />
-                    실시간 자막 안경 연계 스크레핑 탑재
-                  </label>
-                  <label className="flex items-center gap-1.5 text-[9px] text-slate-400 font-bold cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="rounded border-slate-800 bg-slate-950 accent-blue-500"
-                    />
-                    휠체어석 접근 동행 전담 코디 배정
-                  </label>
-                </div>
-
                 <button
                   onClick={startScrapeSync}
-                  className="hc-button-primary w-full py-2.5 bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-1 border border-[#38bdf8]/35"
+                  className="hc-button-primary w-full py-3 bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-1 border border-[#38bdf8]/35 cursor-pointer mt-2"
                 >
                   <Zap className="w-3.5 h-3.5 fill-current" />
                   배리어프리 연동 동기화 시작

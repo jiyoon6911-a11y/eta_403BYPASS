@@ -1396,12 +1396,9 @@ export default function MobilityTab({ onAnnounce, highContrast }: MobilityTabPro
             {/* SUB-SECTION B: S-MAP 실시간 3D 공간 연계 시뮬레이터 (Isometric Architectural Floor map) */}
             <div className="hc-card rounded-3xl bg-slate-900 border border-slate-800 p-5 space-y-4 shadow-lg text-left">
               <div className="space-y-1">
-                <span className="text-[9px] bg-cyan-500/15 text-[#00E5FF] border border-cyan-500/30 px-2 py-0.5 rounded font-black tracking-wider uppercase inline-block">
-                  S-MAP 3D REAL-TIME TWIN
-                </span>
                 <h3 className="text-base font-black text-white tracking-tight flex items-center gap-2 font-sans">
                   <Layers className="w-5 h-5 text-[#00E5FF]" />
-                  S-MAP 실시간 3D 공간 연계 시뮬레이터
+                  3D 공간 시뮬레이터
                 </h3>
                 <p className="text-xs text-slate-400 leading-normal font-sans font-medium">
                   {selectedVenue.name} 내부 및 지상 혜화인도 게이트의 가변 지형 물리 단면을 투시하여 휠체어 전동 회전 반경 통과 성을 모의 점검 가설합니다.
@@ -1437,11 +1434,22 @@ export default function MobilityTab({ onAnnounce, highContrast }: MobilityTabPro
                   </span>
                   <h3 className="text-base font-black text-white tracking-tight flex items-center gap-2 font-sans">
                     <Users className="w-5 h-5 text-[#00E5FF]" />
-                    실시간 현장 혼잡도 및 통제 차단 분석
+                    실시간 현장 혼잡도
                   </h3>
-                  <p className="text-xs text-slate-400 font-semibold">
-                    [{selectedVenue.name}] 지상 진입구부터 각 층별 장애 화장실 편의홀 및 객석 우대석 직결로까지의 실시간 혼잡 밀도입니다.
-                  </p>
+                  <div className="mt-2.5 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-2 text-amber-400">
+                    <span className="text-xs shrink-0">⚠️</span>
+                    <p className="text-[11px] font-black leading-tight flex flex-wrap items-center gap-x-1">
+                      <span>춘천 버스 파업 중</span>
+                      <a
+                        href="https://ccbus.chuncheon.go.kr/#/main/rbs-portal"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-amber-300 font-mono text-cyan-400 text-[10px]"
+                      >
+                        https://ccbus.chuncheon.go.kr/#/main/rbs-portal
+                      </a>
+                    </p>
+                  </div>
                 </div>
 
                 <button

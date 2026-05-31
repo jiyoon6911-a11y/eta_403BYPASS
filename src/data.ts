@@ -23,7 +23,91 @@ export const SHOWS_DATA: Show[] = [
     toilet: true,
     toiletRating: 4.9,
     image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=600",
-    tags: ["휠체어석", "음성해설", "한국어자막"]
+    tags: ["휠체어석", "음성설명", "한국어자막"]
+  },
+  {
+    id: 6,
+    title: "2026 유니버설 인디 밴드 페스티벌 (Universal Band Fest)",
+    genre: "콘서트",
+    facility: "올림픽공원 88잔디마당",
+    score: 98.7,
+    elevator: true,
+    toilet: true,
+    toiletRating: 5.0,
+    image: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&q=80&w=600",
+    tags: ["휠체어석", "자막제공", "수어통역"]
+  },
+  {
+    id: 7,
+    title: "노스탤지어 록 밴드 '그레이 웨이브' 컴백 콘서트",
+    genre: "콘서트",
+    facility: "예스24 라이브홀",
+    score: 95.2,
+    elevator: true,
+    toilet: true,
+    toiletRating: 4.7,
+    image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=600",
+    tags: ["휠체어석", "자막제공", "음성설명"]
+  },
+  {
+    id: 8,
+    title: "사운드 퓨전 재즈 밴드 '블루 노트 익스프레스'",
+    genre: "콘서트",
+    facility: "마포아트센터 맥홀",
+    score: 92.4,
+    elevator: true,
+    toilet: true,
+    toiletRating: 4.5,
+    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&q=80&w=600",
+    tags: ["휠체어석", "음성설명"]
+  },
+  {
+    id: 9,
+    title: "헤비메탈 밴드 '아이언 소울' 라이브 아레나",
+    genre: "콘서트",
+    facility: "고척스카이돔",
+    score: 89.9,
+    elevator: true,
+    toilet: true,
+    toiletRating: 4.3,
+    image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&q=80&w=600",
+    tags: ["휠체어석", "자막제공", "수어통역", "음성설명"]
+  },
+  {
+    id: 10,
+    title: "청춘 어쿠스틱 팝 밴드 '봄의 숲' 잔디 힐링 페스티벌",
+    genre: "콘서트",
+    facility: "연세대학교 노천극장",
+    score: 94.1,
+    elevator: true,
+    toilet: true,
+    toiletRating: 4.6,
+    image: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?auto=format&fit=crop&q=80&w=600",
+    tags: ["휠체어석", "수어통역"]
+  },
+  {
+    id: 11,
+    title: "신디사이저 테크 밴드 '네온 프리즘' 일렉트로 오디세이",
+    genre: "콘서트",
+    facility: "현대카드 언더스테이지",
+    score: 88.5,
+    elevator: true,
+    toilet: true,
+    toiletRating: 4.1,
+    image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=600",
+    tags: ["자막제공", "수어통역"]
+  },
+  {
+    id: 12,
+    title: "배리어프리 펑크 록 아웃크라이 연합 페스티벌",
+    genre: "콘서트",
+    facility: "홍대 상상마당 라이브홀",
+    score: 85.0,
+    elevator: true,
+    toilet: false,
+    toiletRating: 3.2,
+    image: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&q=80&w=600",
+    tags: ["자막제공", "휠체어석"]
   },
   {
     id: 2,
@@ -35,7 +119,7 @@ export const SHOWS_DATA: Show[] = [
     toilet: true,
     toiletRating: 4.2,
     image: "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&q=80&w=600",
-    tags: ["경사로통행", "음향증폭루프", "문자안내"]
+    tags: ["휠체어석", "자막제공", "음성설명"]
   },
   {
     id: 3,
@@ -46,8 +130,44 @@ export const SHOWS_DATA: Show[] = [
     elevator: false,
     toilet: false,
     toiletRating: 2.1,
-    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&q=80&w=600",
-    tags: ["휠체어동행", "스크린자막"]
+    image: "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?auto=format&fit=crop&q=80&w=600",
+    tags: ["휠체어석", "자막제공"]
+  },
+  {
+    id: 13,
+    title: "연극 '갈매기' 배리어프리 특별 기념공연",
+    genre: "연극",
+    facility: "명동예술극장",
+    score: 97.5,
+    elevator: true,
+    toilet: true,
+    toiletRating: 4.9,
+    image: "https://images.unsplash.com/photo-1503095391757-1120044b0a2a?auto=format&fit=crop&q=80&w=600",
+    tags: ["휠체어석", "자막제공", "음성설명", "수어통역"]
+  },
+  {
+    id: 14,
+    title: "뮤지컬 '빨래' 배리어프리 특화 에디션",
+    genre: "뮤지컬",
+    facility: "동양예술극장 1관",
+    score: 93.8,
+    elevator: true,
+    toilet: true,
+    toiletRating: 4.4,
+    image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=600",
+    tags: ["휠체어석", "자막제공"]
+  },
+  {
+    id: 15,
+    title: "포스트록 밴드 '구름아래' 가상 오디오 융합 콘서트",
+    genre: "콘서트",
+    facility: "구름아래소극장",
+    score: 91.0,
+    elevator: true,
+    toilet: true,
+    toiletRating: 4.0,
+    image: "https://images.unsplash.com/photo-1481886156534-67a1e722536b?auto=format&fit=crop&q=80&w=600",
+    tags: ["자막제공", "음성설명"]
   },
   {
     id: 4,
@@ -59,7 +179,7 @@ export const SHOWS_DATA: Show[] = [
     toilet: false,
     toiletRating: 1.0,
     image: "https://images.unsplash.com/photo-1503095391757-1120044b0a2a?auto=format&fit=crop&q=80&w=600",
-    tags: ["음성해설"]
+    tags: ["음성설명"]
   }
 ];
 

@@ -12,6 +12,9 @@ interface SettingsModalProps {
   onHighContrastToggle: () => void;
   themeMode: 'system' | 'dark' | 'light';
   onThemeModeChange: (mode: 'system' | 'dark' | 'light') => void;
+  isScreenReaderEnabled: boolean;
+  onScreenReaderToggle: () => void;
+  onReadScreenAloud: () => void;
 }
 
 export default function SettingsModal({
@@ -23,6 +26,9 @@ export default function SettingsModal({
   onHighContrastToggle,
   themeMode,
   onThemeModeChange,
+  isScreenReaderEnabled,
+  onScreenReaderToggle,
+  onReadScreenAloud,
 }: SettingsModalProps) {
   const { t } = useTranslation();
 
@@ -128,6 +134,38 @@ export default function SettingsModal({
                     highContrast ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
+              </button>
+            </div>
+
+            {/* 4. TTS Screen Reader Mode */}
+            <div className="border-t border-slate-800/50 pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 pr-4">
+                  <h4 className="text-xs font-extrabold text-slate-200 hc-text">📢 {t("시각 보조 음성 안내 (TTS)")}</h4>
+                  <p className="text-[9px] text-slate-400 leading-normal hc-text-mute">
+                    {t("음성 합성 리더를 활성화해 모든 버튼 조작 및 화면 전환을 소리로 안내")}
+                  </p>
+                </div>
+                <button
+                  onClick={onScreenReaderToggle}
+                  className={`w-11 h-6 rounded-full p-0.5 transition-all flex items-center relative ${
+                    isScreenReaderEnabled ? 'bg-blue-600' : 'bg-slate-850'
+                  }`}
+                  aria-label="음성 리더 모드 토글"
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full shadow-md bg-white transition-all transform ${
+                      isScreenReaderEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <button
+                onClick={onReadScreenAloud}
+                className="w-full py-2.5 bg-blue-950 hover:bg-slate-900 border border-cyan-500/30 hover:border-cyan-400 rounded-xl text-xs font-black tracking-tight transition-all text-[#00E5FF] hover:text-white flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+              >
+                <span>🔊</span> {t("현재 화면 전체 소리내어 정독")}
               </button>
             </div>
           </motion.div>

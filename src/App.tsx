@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Home, Map, Calendar, Ticket, User, Settings, Accessibility, Compass, Phone, MessageSquare, Sun } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from './lib/firebase';
+import { doc, getDoc, collection, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
+import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
 
 import { Show, Booking, Ticket as TicketType, ReviewLog, UserProfile } from './types';
 import { SHOWS_DATA, INITIAL_GLOBAL_REVIEWS } from './data';
@@ -43,6 +43,15 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<'home' | 'mobility' | 'visibility' | 'tickets' | 'profile'>('home');
   const [selectedShowDetail, setSelectedShowDetail] = useState<Show | null>(null);
   const [viewSupportersCampaign, setViewSupportersCampaign] = useState(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto scroll to top on tab or view transitions
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [activeTab, selectedShowDetail, viewSupportersCampaign]);
   const [activeVoiceText, setActiveVoiceText] = useState('403 BYPASS 유니버설 안내 및 탐색 센터에 오신 것을 환영합니다.');
 
   // Settings states
@@ -62,6 +71,9 @@ function AppContent() {
   const [alertMessage, setAlertMessage] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSyncOpen, setIsSyncOpen] = useState(false);
+  const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(() => {
+    return localStorage.getItem('is_screen_reader_enabled') === 'true';
+  });
 
   // Data registries
   const [personalReviews, setPersonalReviews] = useState<any[]>([]);
@@ -257,19 +269,18 @@ function AppContent() {
       localStorage.setItem('bypass_following_ids', JSON.stringify(defaultF));
     }
 
-    // Load personal quality evaluations
+    // Load personal quality evaluations (init from cache first, will be synced dynamically by subscription)
     const pReviews = localStorage.getItem('bypass_user_reviews');
     if (pReviews) {
       setPersonalReviews(JSON.parse(pReviews));
     }
 
-    // Load global Reviews
+    // Load global Reviews from cache first
     const gReviews = localStorage.getItem('bypass_global_reviews');
     if (gReviews) {
       setGlobalReviews(JSON.parse(gReviews));
     } else {
       setGlobalReviews(INITIAL_GLOBAL_REVIEWS);
-      localStorage.setItem('bypass_global_reviews', JSON.stringify(INITIAL_GLOBAL_REVIEWS));
     }
 
     // Load external synced tickets
@@ -280,6 +291,74 @@ function AppContent() {
 
     return () => unsubscribe();
   }, []);
+
+  // Real-time Global Reviews Synchronization from Google Cloud Firestore
+  useEffect(() => {
+    let unsubscribeReviews: () => void = () => {};
+
+    const setupReviewsSubscription = () => {
+      const q = collection(db, 'reviews');
+      unsubscribeReviews = onSnapshot(q, (snapshot) => {
+        const dbReviewsMap = new Map<number, ReviewLog>();
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as ReviewLog;
+          dbReviewsMap.set(data.id, data);
+        });
+
+        // Merge INITIAL_GLOBAL_REVIEWS and Cloud Firestore reviews
+        const merged: ReviewLog[] = [];
+        // First add all reviews present in Firestore
+        dbReviewsMap.forEach((review) => {
+          merged.push(review);
+        });
+        // Then append initial fallback reviews if they are not yet stored/overridden in Firestore
+        INITIAL_GLOBAL_REVIEWS.forEach((initReview) => {
+          if (!dbReviewsMap.has(initReview.id)) {
+            merged.push(initReview);
+          }
+        });
+
+        // Sort by id descending (id is Date.now())
+        merged.sort((a, b) => b.id - a.id);
+        
+        setGlobalReviews(merged);
+        localStorage.setItem('bypass_global_reviews', JSON.stringify(merged));
+      }, (err) => {
+        console.error("Failed to subscribe to reviews from Firestore:", err);
+      });
+    };
+
+    // Maintain live subscription whenever a user is signed in
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setupReviewsSubscription();
+      } else {
+        unsubscribeReviews();
+        const cached = localStorage.getItem('bypass_global_reviews');
+        if (cached) {
+          setGlobalReviews(JSON.parse(cached));
+        } else {
+          setGlobalReviews(INITIAL_GLOBAL_REVIEWS);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeReviews();
+    };
+  }, []);
+
+  // Sync personal reviews dynamically based on global public reviews
+  useEffect(() => {
+    if (currentUser) {
+      const filtered = globalReviews.filter(r => r.userId === currentUser.userId);
+      setPersonalReviews(filtered);
+      localStorage.setItem('bypass_user_reviews', JSON.stringify(filtered));
+    } else {
+      setPersonalReviews([]);
+    }
+  }, [globalReviews, currentUser]);
 
   // Synchronize dynamic dark/light mode according to user selection or system preference
   useEffect(() => {
@@ -341,8 +420,78 @@ function AppContent() {
     setIsAlertOpen(true);
   };
 
+  const speakText = (text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      // Remove any HTML tags from message
+      const cleanText = text.replace(/<[^>]*>/g, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'ko-KR';
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error("Speech Synthesis Error:", e);
+    }
+  };
+
+  const handleScreenReaderToggle = () => {
+    const nextVal = !isScreenReaderEnabled;
+    setIsScreenReaderEnabled(nextVal);
+    localStorage.setItem('is_screen_reader_enabled', String(nextVal));
+    
+    if (nextVal) {
+      const guideText = "시각장애인을 위한 앱 자동 음성 읽어주기 스크린 리더 기능이 활성화되었습니다. 이제 버튼을 클릭하거나 화면을 전환할 때마다 음성으로 안내가 진행됩니다.";
+      setActiveVoiceText(guideText);
+      speakText(guideText);
+    } else {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setActiveVoiceText("스크린 리더 읽어주기 기능이 비활성화되었습니다.");
+    }
+  };
+
+  const handleReadScreenAloud = () => {
+    let speakMessage = "";
+    if (selectedShowDetail) {
+      speakMessage = `공연 상세안내 화면입니다. 공연 명은 ${selectedShowDetail.title} 이며, 장르는 ${selectedShowDetail.genre}, 관람 시설은 ${selectedShowDetail.facility} 입니다. 제공되는 무벽 지원 수단 수단으로는 ${selectedShowDetail.tags.join(', ')} 조건이 준비되어 있습니다.`;
+    } else if (viewSupportersCampaign) {
+      speakMessage = "403 서포터즈 1기 공식 모집 안내페이지입니다. 배리어 프리를 뛰어넘는 무장벽 공연 가이드 기수 혜택 및 동재 공연 참여 서포팅 모집 정보를 살필 수 있습니다.";
+    } else {
+      switch (activeTab) {
+        case 'home':
+          // Safely access filteredShows length and names if needed, or fallback
+          const showsCount = globalReviews ? "여러" : "0";
+          speakMessage = `공연 추천 및 홈 화면입니다. 회원님의 관심 및 지향 장애인 보조 수단 기준에 완비된 공연들이 등록되어 있습니다. 하단에는 공식 403 서포터즈 1기 대모집 참여 배너가 안내되어 있습니다.`;
+          break;
+        case 'mobility':
+          speakMessage = "안심 배리어프리 지도 길찾기 안내 화면입니다. 목적 극장까지 한눈에 안전 휠체어 전용 경사로, 단차 유무 및 혼잡 통제 정보를 지오맵 상에서 확인하실 수 있습니다.";
+          break;
+        case 'visibility':
+          speakMessage = "시청각 배리어 프리 및 가이드 동행 예약 화면입니다. 1대1 안전 실시간 접근성 매니저의 예약 일지와 사전 예약 신청을 도우며, 가상 안경 및 스마트 전동 휠체어 전산 예약을 진행합니다.";
+          break;
+        case 'tickets':
+          speakMessage = `외부 티켓 플랫폼 예매권 배리어프리 연동 화면입니다. 연동이 보장된 타사 예매권을 기반으로 휠체어석 접근 연계나 동행 지원을 자동으로 예약 배정합니다.`;
+          break;
+        case 'profile':
+          speakMessage = `회원 마이페이지 화면입니다. 계정의 닉네임과 고유의 무장벽 활동 가이드 뱃지 목록 그리고 소셜 ID 인맥 회원 검색기가 구성되어 있습니다.`;
+          break;
+        default:
+          speakMessage = "배리어 프리 403 BYPASS 유니버설 앱 화면에 머무르고 있습니다.";
+      }
+    }
+    
+    // Always speak aloud on deliberate action click
+    speakText(speakMessage);
+    setActiveVoiceText(speakMessage);
+  };
+
   const handleAnnounce = (msg: string) => {
     setActiveVoiceText(msg);
+    if (isScreenReaderEnabled) {
+      speakText(msg);
+    }
   };
 
   // Navigations handler
@@ -380,92 +529,81 @@ function AppContent() {
     }
   };
 
-  const handleAddReview = (newReview: { show: string; rating: number; text: string }) => {
+  const handleAddReview = async (newReview: { show: string; rating: number; text: string }) => {
     const creator = currentUser || { name: '익명', userId: 'anonymous', role: '일반 관람객' };
     const rId = Date.now();
 
-    const reviewObj = {
-      id: rId,
-      show: newReview.show,
-      rating: newReview.rating,
-      text: newReview.text,
-    };
-
-    // 1. Personal list
-    const updatedPersonal = [reviewObj, ...personalReviews];
-    setPersonalReviews(updatedPersonal);
-    localStorage.setItem('bypass_user_reviews', JSON.stringify(updatedPersonal));
-
-    // 2. Global registry
-    const globalObj: ReviewLog = {
+    const reviewObj: ReviewLog = {
       id: rId,
       userId: creator.userId,
       userName: creator.name,
-      userRole: creator.role,
+      userRole: creator.role || '일반 관람객',
       show: newReview.show,
       rating: newReview.rating,
       text: newReview.text,
       comments: [],
     };
-    const updatedGlobal = [globalObj, ...globalReviews];
-    setGlobalReviews(updatedGlobal);
-    localStorage.setItem('bypass_global_reviews', JSON.stringify(updatedGlobal));
 
-    handleAnnounce(`새로운 배리어프리 품질 탐방 리뷰 [${newReview.show}]가 기여 DB에 완벽 보존되었습니다.`);
+    try {
+      await setDoc(doc(db, 'reviews', String(rId)), reviewObj);
+      handleAnnounce(`새로운 배리어프리 품질 탐방 리뷰 [${newReview.show}]가 기여 DB에 완벽 보존되었습니다.`);
+    } catch (err) {
+      console.error("후기 저장 오류:", err);
+      handleFirestoreError(err, OperationType.WRITE, `reviews/${rId}`);
+    }
   };
 
-  const handleClearPersonalReviews = () => {
+  const handleClearPersonalReviews = async () => {
     if (confirm("정말로 모든 기록 로그들을 완전 소산 소거하시겠습니까?")) {
+      if (currentUser) {
+        const userReviews = globalReviews.filter(r => r.userId === currentUser.userId);
+        for (const r of userReviews) {
+          try {
+            await deleteDoc(doc(db, 'reviews', String(r.id)));
+          } catch (err) {
+            console.error("후기 일괄 삭제 중 오류:", err);
+          }
+        }
+      }
       setPersonalReviews([]);
       localStorage.removeItem('bypass_user_reviews');
-
-      // Clear own in global too
-      if (currentUser) {
-        const remainingGlobal = globalReviews.filter(r => r.userId !== currentUser.userId);
-        setGlobalReviews(remainingGlobal);
-        localStorage.setItem('bypass_global_reviews', JSON.stringify(remainingGlobal));
-      }
       handleAnnounce("관람 평가 및 수기 탐사 기록 데이터베이스를 깨끗이 초기화 완료 소화 수행했습니다.");
     }
   };
 
-  const handleDeleteReview = (id: number) => {
-    const pList = personalReviews.filter(r => r.id !== id);
-    setPersonalReviews(pList);
-    localStorage.setItem('bypass_user_reviews', JSON.stringify(pList));
-
-    const gList = globalReviews.filter(r => r.id !== id);
-    setGlobalReviews(gList);
-    localStorage.setItem('bypass_global_reviews', JSON.stringify(gList));
-
-    handleAnnounce("선택된 개별 배리어프리 후기 행렬 인스턴스를 즉각 영구 파기했습니다.");
+  const handleDeleteReview = async (id: number) => {
+    try {
+      await deleteDoc(doc(db, 'reviews', String(id)));
+      handleAnnounce("선택된 개별 배리어프리 후기 행렬 인스턴스를 즉각 영구 파기했습니다.");
+    } catch (err) {
+      console.error("후기 삭제 오류:", err);
+      handleFirestoreError(err, OperationType.DELETE, `reviews/${id}`);
+    }
   };
 
-  const handleAddComment = (reviewId: number, text: string) => {
+  const handleAddComment = async (reviewId: number, text: string) => {
     const creator = currentUser || { name: '익명', userId: 'anonymous' };
-    const updated = globalReviews.map((gr) => {
-      if (gr.id === reviewId) {
-        const comments = gr.comments || [];
-        return {
-          ...gr,
-          comments: [
-            ...comments,
-            {
-              id: Date.now(),
-              authorId: creator.userId,
-              authorName: creator.name,
-              text,
-              timestamp: '방금 전',
-            },
-          ],
-        };
-      }
-      return gr;
-    });
-
-    setGlobalReviews(updated);
-    localStorage.setItem('bypass_global_reviews', JSON.stringify(updated));
-    handleAnnounce("소셜 대화 보드에 실시간 대화글 전송 참여 처리가 완료되었습니다.");
+    const reviewRef = doc(db, 'reviews', String(reviewId));
+    try {
+      const reviewToUpdate = globalReviews.find(r => r.id === reviewId);
+      if (!reviewToUpdate) return;
+      const currentComments = reviewToUpdate.comments || [];
+      const newComment = {
+        id: Date.now(),
+        authorId: creator.userId,
+        authorName: creator.name,
+        text,
+        timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+      };
+      await setDoc(reviewRef, {
+        ...reviewToUpdate,
+        comments: [...currentComments, newComment]
+      });
+      handleAnnounce("소셜 대화 보드에 실시간 대화글 전송 참여 처리가 완료되었습니다.");
+    } catch (err) {
+      console.error("댓글 작성 중 오류 발생:", err);
+      handleFirestoreError(err, OperationType.WRITE, `reviews/${reviewId}`);
+    }
   };
 
   const handleToggleFollow = (userId: string, userName: string) => {
@@ -584,7 +722,7 @@ function AppContent() {
           <ul className="space-y-2 text-[11px] sm:text-[11.5px] text-slate-400 leading-normal pl-0">
             <li className="flex items-start gap-1 pb-1.5 border-b border-slate-850/30">
               <span className="text-blue-400 shrink-0 font-extrabold pr-0.5">①</span>
-              <span>{t("스마트폰 화면 중앙의 403 BYPASS 아이콘을 눌러 체험을 시작합니다.")}</span>
+              <span>{t("스마트폰 화면 403 BYPASS 아이콘을 눌러 앱을 실행합니다.")}</span>
             </li>
             <li className="flex items-start gap-1 pb-1.5 border-b border-slate-850/30">
               <span className="text-blue-400 shrink-0 font-extrabold pr-0.5">②</span>
@@ -812,7 +950,7 @@ function AppContent() {
           <div className={`flex-1 flex flex-col h-full overflow-hidden relative transition-colors duration-300 ${highContrast ? 'high-contrast-mode bg-black' : 'bg-[#131b26]'}`}>
             
             {/* Scrollable Main Area representing the original page */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 relative select-text scrollbar-none h-[calc(100%-32px)]">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-24 relative select-text scrollbar-none h-[calc(100%-32px)]">
               {/* 1. Login session barrier */}
               {!currentUser ? (
                 <LoginPortal
@@ -1017,6 +1155,9 @@ function AppContent() {
             handleAnnounce("라이트 모드로 화면 테마가 수동 지정되어 고정되었습니다.");
           }
         }}
+        isScreenReaderEnabled={isScreenReaderEnabled}
+        onScreenReaderToggle={handleScreenReaderToggle}
+        onReadScreenAloud={handleReadScreenAloud}
       />
 
       <SyncModal

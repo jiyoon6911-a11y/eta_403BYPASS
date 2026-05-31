@@ -263,22 +263,39 @@ export default function ShowDetailView({
     <div className={`space-y-6 pt-1 text-left pb-16 ${highContrast ? 'high-contrast-mode' : ''}`}>
       
       {/* 1. Header Banner Detail with cover & back chevron */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-slate-900 via-slate-950 to-[#0B0F19] border border-slate-800 p-4 shadow-xl">
+      <div className={`relative rounded-3xl overflow-hidden p-4 shadow-xl border ${
+        highContrast 
+          ? 'bg-[#000000] border-2 border-white' 
+          : 'bg-gradient-to-b from-[#f0f9ff] via-[#e2f1fc] to-white border-[#bae6fd]'
+      }`}>
         
         {/* Absolute Blurry decorative poster background */}
-        <div className="absolute inset-0 bg-cover bg-center brightness-[0.15] blur-md opacity-30 select-none pointer-events-none" style={{ backgroundImage: `url(${show.image})` }} />
+        <div 
+          className={`absolute inset-0 bg-cover bg-center blur-md select-none pointer-events-none ${
+            highContrast ? 'brightness-[0.05] opacity-10' : 'brightness-[0.92] opacity-[0.04]'
+          }`} 
+          style={{ backgroundImage: `url(${show.image})` }} 
+        />
 
         {/* Action Header Nav bar */}
         <div className="flex items-center justify-between relative z-10 mb-4">
           <button
             onClick={onBack}
-            className="w-9 h-9 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center shadow-lg border border-slate-800/80 active:scale-95 transition-all cursor-pointer"
+            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all cursor-pointer border ${
+              highContrast 
+                ? 'bg-black text-white border-2 border-white hover:bg-zinc-900' 
+                : 'bg-white text-slate-800 hover:bg-sky-50 border-sky-200'
+            }`}
             aria-label="돌아가기"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           
-          <span className="text-[10px] font-mono font-black tracking-widest text-[#00E5FF] bg-[#00E5FF]/10 px-2.5 py-1 rounded-full border border-[#00E5FF]/20 animate-pulse">
+          <span className={`text-[10px] font-mono font-black tracking-widest px-2.5 py-1 rounded-full animate-pulse border ${
+            highContrast 
+              ? 'text-yellow-400 bg-black border-yellow-400/50' 
+              : 'text-cyan-700 bg-cyan-100/50 border-cyan-300'
+          }`}>
             S-SIGHT VERIFY (VR 연동됨)
           </span>
         </div>
@@ -289,16 +306,15 @@ export default function ShowDetailView({
             <img 
               src={show.image} 
               alt={show.title} 
-              className="w-24 h-32 object-cover rounded-2xl border border-slate-800 shadow-2xl filter brightness-95"
+              className={`w-24 h-32 object-cover rounded-2xl shadow-2xl border ${
+                highContrast ? 'border-white' : 'border-sky-200/60'
+              }`}
               referrerPolicy="no-referrer"
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120"><rect width="100%" height="120%" fill="%23131d35"/><text x="50%" y="45%" font-family="sans-serif" font-size="10" fill="%2300E5FF" font-weight="bold" text-anchor="middle" dominant-baseline="middle">THEATER</text><text x="50%" y="65%" font-family="sans-serif" font-size="8" fill="%2364748b" text-anchor="middle" dominant-baseline="middle">POSTER</text></svg>`;
               }}
             />
-            <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full shadow border border-slate-900">
-              {show.score}% 매칭
-            </div>
           </div>
 
           <div className="space-y-2 flex-1 pt-1">
@@ -306,23 +322,37 @@ export default function ShowDetailView({
               <span className="text-[9px] bg-blue-600 text-white font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
                 {show.genre}
               </span>
-              <span className="text-[9.5px] font-bold text-slate-400">
+              <span className={`text-[9.5px] font-extrabold ${
+                highContrast ? 'text-slate-350' : 'text-slate-600'
+              }`}>
                 {show.facility}
               </span>
             </div>
 
-            <h2 className="text-xl font-black text-white leading-tight tracking-tight">
+            <h2 className={`text-xl font-black leading-tight tracking-tight ${
+              highContrast ? 'text-white' : 'text-slate-900'
+            }`}>
               {show.title}
             </h2>
 
             {/* Quick specifications inside header grid */}
-            <div className="grid grid-cols-1 xs:grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/70">
-              <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <div className={`grid grid-cols-1 xs:grid-cols-2 gap-1.5 pt-2 border-t ${
+              highContrast ? 'border-slate-800' : 'border-sky-100'
+            }`}>
+              <div className={`flex items-center gap-1.5 text-xs ${
+                highContrast ? 'text-slate-300' : 'text-slate-700'
+              }`}>
+                <Calendar className={`w-3.5 h-3.5 shrink-0 ${
+                  highContrast ? 'text-cyan-400' : 'text-cyan-600'
+                }`} />
                 <span className="text-[10px] leading-none font-bold">2026.05.28 ~ 2026.08.15</span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <div className={`flex items-center gap-1.5 text-xs ${
+                highContrast ? 'text-slate-300' : 'text-slate-700'
+              }`}>
+                <Users className={`w-3.5 h-3.5 shrink-0 ${
+                  highContrast ? 'text-cyan-400' : 'text-cyan-600'
+                }`} />
                 <span className="text-[10px] leading-none font-bold">조승우, 전동석, 김주택</span>
               </div>
             </div>

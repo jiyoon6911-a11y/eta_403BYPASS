@@ -416,48 +416,103 @@ export default function ProfileTab({
               </button>
             </div>
 
-            {searchResult && (
-              <div className="border border-slate-800 bg-slate-950/40 p-3 rounded-xl">
+            {isSearchingDb && (
+              <div className="text-center py-3">
+                <span className="text-xs text-[#00E5FF] font-bold animate-pulse">데이터베이스 검색 중... 📡</span>
+              </div>
+            )}
+
+            {!isSearchingDb && searchResult && (
+              <div className="border border-slate-800 bg-slate-950/40 p-3.5 rounded-xl">
                 {searchResult.notFound ? (
-                  <p className="text-[10px] text-slate-500 font-bold">일치하는 고유 아이디(@{searchResult.query})가 없습니다.</p>
+                  <div className="flex flex-col items-center justify-center py-5 px-3 text-center space-y-2">
+                    <span className="text-2xl">🔍</span>
+                    <p className="text-xs font-bold text-rose-500 tracking-wide">
+                      일치하는 회원을 찾을 수 없습니다
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                      입력해 주신 아이디나 이름 <span className="text-pink-400 font-black font-mono">@{searchResult.query}</span>에 해당하는 동지 회원이 데이터베이스에 존재하지 않습니다.
+                    </p>
+                  </div>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {searchResult.avatarUrl ? (
-                        searchResult.avatarUrl.startsWith('http') ? (
-                          <img
-                            src={searchResult.avatarUrl}
-                            referrerPolicy="no-referrer"
-                            className="w-8 h-8 rounded-full object-cover border border-slate-700"
-                            alt="Profile"
-                          />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {searchResult.avatarUrl ? (
+                          searchResult.avatarUrl.startsWith('http') ? (
+                            <img
+                              src={searchResult.avatarUrl}
+                              referrerPolicy="no-referrer"
+                              className="w-8 h-8 rounded-full object-cover border border-slate-700"
+                              alt="Profile"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-base font-extrabold">
+                              {searchResult.avatarUrl}
+                            </div>
+                          )
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-base font-extrabold">
-                            {searchResult.avatarUrl}
+                          <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs truncate">
+                            {searchResult.name.substring(0, 2)}
                           </div>
-                        )
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs truncate">
-                          {searchResult.name.substring(0, 2)}
+                        )}
+                        <div className="text-left leading-normal text-[11px]">
+                          <p className="font-extrabold text-white">
+                            {searchResult.name} <span className="text-[8px] text-cyan-400">{searchResult.type}</span>
+                          </p>
+                          <span className="text-slate-500 font-mono">@{searchResult.userId}</span>
                         </div>
-                      )}
-                      <div className="text-left leading-normal text-[11px]">
-                        <p className="font-extrabold text-white">
-                          {searchResult.name} <span className="text-[8px] text-cyan-405">{searchResult.type}</span>
-                        </p>
-                        <span className="text-slate-500 font-mono">@{searchResult.userId}</span>
                       </div>
+                      <button
+                        onClick={() => onToggleFollow(searchResult.userId, searchResult.name)}
+                        className={`text-[9px] font-black px-2.5 py-1 rounded ${
+                          followingIds.includes(searchResult.userId)
+                            ? 'bg-slate-800 text-slate-400'
+                            : 'bg-blue-600 text-white'
+                        }`}
+                      >
+                        {followingIds.includes(searchResult.userId) ? '팔로잉 취소' : '팔로우'}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => onToggleFollow(searchResult.userId, searchResult.name)}
-                      className={`text-[9px] font-black px-2.5 py-1 rounded ${
-                        followingIds.includes(searchResult.userId)
-                          ? 'bg-slate-800 text-slate-400'
-                          : 'bg-blue-600 text-white'
-                      }`}
-                    >
-                      {followingIds.includes(searchResult.userId) ? '팔로잉 취소' : '팔로우'}
-                    </button>
+
+                    {/* Searched user's real reviews from shared feed */}
+                    {(() => {
+                      const userReviews = globalReviews.filter(r => r.userId === searchResult.userId);
+                      if (userReviews.length === 0) {
+                        return (
+                          <div className="mt-2.5 pt-2.5 border-t border-slate-900 border-dashed text-center">
+                            <p className="text-[9.5px] text-slate-500 font-bold">작성한 배리어프리 후기가 없습니다.</p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="mt-2.5 pt-2.5 border-t border-slate-900 border-dashed space-y-1.5 text-left">
+                          <p className="text-[9.5px] text-slate-400 font-black">📝 작성한 후기 ({userReviews.length}개)</p>
+                          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                            {userReviews.map((ur) => (
+                              <div key={ur.id} className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-850/80 space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-black text-cyan-300">
+                                    {ur.show}
+                                  </span>
+                                  <div className="flex items-center gap-0.5">
+                                    {Array.from({ length: 5 }).map((_, idx) => (
+                                      <Star
+                                        key={idx}
+                                        className={`w-2.5 h-2.5 ${
+                                          idx < ur.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-700'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="text-[10.5px] text-slate-300 leading-normal whitespace-pre-wrap">{ur.text}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -468,7 +523,7 @@ export default function ProfileTab({
           <div className="hc-card rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
             <h4 className="text-xs font-black text-slate-300 uppercase flex items-center gap-1.5">
               <Users className="w-4 h-4 text-emerald-400 animate-pulse" />
-              추천 네트워크 협력 동승자 목록
+              추천 네트워크
             </h4>
 
             <div className="divide-y divide-slate-805 space-y-2.5">
